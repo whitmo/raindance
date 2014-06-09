@@ -1,3 +1,4 @@
+from .release import Release
 from path import path
 from subparse import CLI
 import logging
@@ -8,8 +9,8 @@ import sys
 def make_context(cli, args):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
-
-    return dict(logger=logger)
+    release = Release(args.releasepath)
+    return dict(release=release, logger=logger)
 
 
 def genopts(parser):
@@ -59,8 +60,44 @@ def upload(parser):
 
 @cli.command('raindance.job:job_command')
 def job(parser):
-    "For working with jobs"
-    pass
+    "For working with a specific job"
+    parser.add_argument('name', help="directory w/ compiled packages",
+                        type=str)
+
+    parser.add_argument('-d', '--download', help="download packages for this job",
+                        action="store_true",
+                        default=False)
+
+    parser.add_argument('-w', '--shrinkwrap', help="Zip up job and packages",
+                        action="store_true",
+                        default=False)
+
+    return parser
+
+@cli.command('raindance.job:print_jobs')
+def jobs(parser):
+    """
+    List the all jobs
+    """
+    return parser
+
+
+@cli.command('raindance.job:print_spec')
+def spec(parser):
+    "spec in json for a job"
+    parser.add_argument('name', help="json rendering of spec",
+                        type=str)
+
+    parser.add_argument('-p', '--packages', help="show packages",
+                        action='store_true', default=False)
+
+    parser.add_argument('-t', '--templates', help="show templates",
+                        action='store_true', default=False)
+
+    parser.add_argument('-a', '--properties', help="show properties",
+                        action='store_true', default=False)
+    return parser
+
 
 main = cli.run
 
