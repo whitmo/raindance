@@ -43,7 +43,8 @@ def upload_compiled_packages(ctx, pargs):
 
 
 def make_manifest_data(paths):
-    mani_data = {p.name.rsplit('-', 1)[0]:(p.name, p.read_hexhash('sha1'))
+    mani_data = {p.name.rsplit('-', 1)[0]:dict(filename=p.name,
+                                               sha1=p.read_hexhash('sha1'))
                  for p in paths}
     return mani_data
 

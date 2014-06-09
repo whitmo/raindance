@@ -1,11 +1,8 @@
-from . import pkgidx
-from boto.exception import S3ResponseError
 from path import path
 from subparse import CLI
 import logging
 import os
 import sys
-import yaml
 
 
 def make_context(cli, args):
@@ -60,8 +57,10 @@ def upload(parser):
     return parser
 
 
-
-
+@cli.command('raindance.job:job_command')
+def job(parser):
+    "For working with jobs"
+    pass
 
 main = cli.run
 
