@@ -16,9 +16,15 @@ def make_context(cli, args):
 def genopts(parser):
     parser.add_argument('-p', '--releasepath', action='store',
                         help="path to cf-release",
+                        type=path,
                         default=path('.').abspath() / 'cf-release')
 
-    parser.add_argument('-n', action='store', default=None,
+    index_url = 'http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com'
+    parser.add_argument('-i', '--index', action='store',
+                        help="URL of compiled package index",
+                        default=index_url)
+
+    parser.add_argument('-n',  '--release-number', action='store', default=None,
                         help="Release number")
 
 
