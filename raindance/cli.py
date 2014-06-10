@@ -74,11 +74,24 @@ def job(parser):
 
     return parser
 
+
 @cli.command('raindance.job:print_jobs')
 def jobs(parser):
     """
     List the all jobs
     """
+    return parser
+
+
+@cli.command('raindance.job:print_erb_tags')
+def erb(parser):
+    """
+    Explore erb tags in job templates
+    """
+    parser.add_argument('-s', '--erb-tags', help="show erb tags",
+                        action='store_true', default=False)
+
+    parser.add_argument('job', help="show erb tags")
     return parser
 
 
