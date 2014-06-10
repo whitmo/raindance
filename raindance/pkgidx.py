@@ -116,4 +116,4 @@ def s3upload_dir(cxn, bucket_name, directory, prefix='', poolsize=200):
             s3key = bucket.new_key(key)
             if not s3key.exists():
                 logger.debug("queue file: %s -> %s", ppath, key)
-                batch.upload(bucket_name, key, ppath.text())
+                batch.upload(bucket_name, key, ppath.bytes())
