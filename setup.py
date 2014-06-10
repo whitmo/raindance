@@ -23,7 +23,8 @@ setup(name='raindance',
           'path.py',
           'pyyaml',
           's3po',
-          'subparse'
+          'subparse',
+          'requests'
       ],
       entry_points="""
       [console_scripts]
