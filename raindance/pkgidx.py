@@ -3,8 +3,6 @@ from path import path
 import json
 import logging
 import s3po
-import sys
-import gevent
 import operator
 
 
