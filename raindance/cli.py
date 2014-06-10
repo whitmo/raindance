@@ -32,6 +32,52 @@ cli = CLI(version='0.0', context_factory=make_context)
 cli.add_generic_options(genopts)
 
 
+@cli.command('raindance.pkgidx:deps_command')
+def deps(parser):
+    """
+    List the all jobs
+    """
+    parser.add_argument('name', help="directory w/ compiled packages",
+                        type=str)
+
+    parser.add_argument('-d', '--download-dir',
+                        help="Download directory for job dependencies",
+                        action='store', default=path('~/.raindance/cache'))
+
+    parser.add_argument('--dryrun',
+                        help="Check deps and availability, but do nothing",
+                        action='store_true', default=False)
+
+
+@cli.command('raindance.job:print_erb_tags')
+def erb(parser):
+    """
+    Explore erb tags in job templates
+    """
+    parser.add_argument('-s', '--erb-tags', help="show erb tags",
+                        action='store_true', default=False)
+
+    parser.add_argument('job', help="show erb tags")
+    return parser
+
+
+@cli.command('raindance.job:print_spec')
+def spec(parser):
+    "spec in json for a job"
+    parser.add_argument('name', help="json rendering of spec",
+                        type=str)
+
+    parser.add_argument('-p', '--packages', help="show packages",
+                        action='store_true', default=False)
+
+    parser.add_argument('-t', '--templates', help="show templates",
+                        action='store_true', default=False)
+
+    parser.add_argument('-a', '--properties', help="show properties",
+                        action='store_true', default=False)
+    return parser
+
+
 @cli.command('raindance.pkgidx:upload_compiled_packages')
 def upload(parser):
     """
@@ -89,37 +135,7 @@ def jobs(parser):
     return parser
 
 
-@cli.command('raindance.job:print_erb_tags')
-def erb(parser):
-    """
-    Explore erb tags in job templates
-    """
-    parser.add_argument('-s', '--erb-tags', help="show erb tags",
-                        action='store_true', default=False)
-
-    parser.add_argument('job', help="show erb tags")
-    return parser
-
-
-@cli.command('raindance.job:print_spec')
-def spec(parser):
-    "spec in json for a job"
-    parser.add_argument('name', help="json rendering of spec",
-                        type=str)
-
-    parser.add_argument('-p', '--packages', help="show packages",
-                        action='store_true', default=False)
-
-    parser.add_argument('-t', '--templates', help="show templates",
-                        action='store_true', default=False)
-
-    parser.add_argument('-a', '--properties', help="show properties",
-                        action='store_true', default=False)
-    return parser
-
-
 main = cli.run
 
 if __name__ == "__main__":
-
     sys.exit(main())
