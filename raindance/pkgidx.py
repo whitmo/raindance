@@ -44,7 +44,7 @@ def download(session, url, filename, sha1, outputdir):
     if not dest.exists():
         resp = session.get(url, stream=True)
         if resp.ok:
-            dest.write_text(resp.content)
+            dest.write_bytes(resp.content)
         assert dest.read_hexhash('sha1') == sha1
         worked = True
     return worked, dest
@@ -94,7 +94,8 @@ def upload_compiled_packages(ctx, pargs):
     key = pargs.prefix and \
       "%s%s" % (pargs.prefix, 'index.json') or 'index.json'
 
-    cxn.upload(pargs.bucket, key, manifest)
+    cxn.upload(pargs.bucket, key, manifest, headers={'Content-Type':'application.json'})
+    return 0
 
 
 def make_manifest_data(paths):
@@ -110,10 +111,11 @@ sget = operator.attrgetter('size')
 def s3upload_dir(cxn, bucket_name, directory, prefix='', poolsize=200):
     bucket = cxn.conn.get_bucket(bucket_name)
     files = sorted(directory.files(), key=sget, reverse=True)
+    headers = {'Content-Type':'application/x-tar'}
     with cxn.batch(poolsize) as batch:
         for ppath in files:
             key = '%s%s' % (prefix, ppath.basename())
             s3key = bucket.new_key(key)
             if not s3key.exists():
                 logger.debug("queue file: %s -> %s", ppath, key)
-                batch.upload(bucket_name, key, ppath.bytes())
+                batch.upload(bucket_name, key, ppath.bytes(), headers=headers)
