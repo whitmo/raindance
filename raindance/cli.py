@@ -1,4 +1,5 @@
 from .release import Release
+from clint import resources
 from path import path
 from subparse import CLI
 import logging
