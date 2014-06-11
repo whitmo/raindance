@@ -1,12 +1,14 @@
-from boto.exception import S3ResponseError
 #from contextlib import closing
+from boto.exception import S3ResponseError
+from clint import resources
+from clint.textui import progress
 from path import path
 import gevent
 import gevent.monkey
+import grequests
 import json
 import logging
 import operator
-import grequests
 import s3po
 import sys
 
@@ -19,7 +21,7 @@ def deps_command(ctx, pargs):
     release = ctx['release']
     job = release.query_job(pargs.name)
     assert job, "Job not found"
-    dd = pargs.download_dir.expanduser()
+    dd = pargs.cache_dir.expanduser()
     dd.makedirs_p()
 
     rsession = grequests.Session()
@@ -29,39 +31,65 @@ def deps_command(ctx, pargs):
     data = resp.json()
 
     dep_data = [(pkg, data[pkg]) for pkg in job.packages]
+    print json.dumps([x for x in get_deps(rsession, pargs.index, dep_data, dd)], indent=2)
+
+
+def get_deps(session, index, dep_data, download_dir):
     greenlets = []
     for name, data in dep_data:
-        url = '/'.join((pargs.index, data['filename']))
-        g = gevent.spawn(download, rsession, url, data['filename'],
-                         data['sha1'], dd)
+
+        filename = data['filename']
+        sha1 = data['sha1']
+        dest = download_dir / filename
+
+        if dest.exists() and not dest.read_hexhash('sha1') == sha1:
+            logger.error("Bad sha1: %s", dest)
+            dest.remove()
+
+        if dest.exists():
+            yield True, name, dest; continue
+
+        url = '/'.join((index, filename))
+        g = gevent.spawn(download, session, url, dest, name, sha1)
         greenlets.append(g)
+
     gevent.wait(greenlets)
 
-
-def download(session, url, filename, sha1, outputdir):
-    dest = outputdir / filename
-    worked = False
-    if not dest.exists():
-        resp = session.get(url, stream=True)
-        if resp.ok:
-            dest.write_bytes(resp.content)
-        assert dest.read_hexhash('sha1') == sha1
-        worked = True
-    return worked, dest
+    for greenlet in greenlets:
+        status = greenlet.successful()
+        yield status, greenlet.value
+        if not status:
+            logger.error("Retrieval failed -- %s:%s", name, dest)
 
 
+def download(session, url, dest, name, sha1):
+    dl_w_progress(session, url, dest)
+    assert dest.read_hexhash('sha1') == sha1
+    return name, dest
 
 
-        # #with closing(session.get(url, stream=True)) as resp, fp:
-        # session.get(url, stream=True)
-        # with fp:
-        #     written = 0
-        #     for chunk in resp.iter_content():
-        #         fp.write(chunk)
-        #         written += len(chunk)
-        #         gevent.sleep(0)
-        #         if written == resp.headers['content-length']:
-        #             break
+def simple_download(session, url, dest):
+    resp = session.get(url)
+    if resp.ok:
+        dest.write_bytes(resp.content)
+        return dest
+
+
+def dl_w_progress(session, url, dest, size=1024):
+    resp = session.get(url, stream=True)
+    if resp.ok:
+        with open(dest, 'wb') as f:
+            total_length = int(resp.headers.get('content-length'))
+            expected_size = (total_length/size) + 1
+            for chunk in progress.bar(resp.iter_content(chunk_size=size),
+                                      expected_size=expected_size):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+                    gevent.sleep()
+        return dest
+
+
 
 
 

@@ -15,6 +15,7 @@ def make_context(cli, args):
 
 
 def genopts(parser):
+    resources.init('cf-charmers', 'raindance')
     parser.add_argument('-p', '--releasepath', action='store',
                         help="path to cf-release",
                         type=path,
@@ -41,9 +42,10 @@ def deps(parser):
     parser.add_argument('name', help="directory w/ compiled packages",
                         type=str)
 
-    parser.add_argument('-d', '--download-dir',
+    cache = path(resources.user.path) / 'cpkg-cache'
+    parser.add_argument('--cache-dir',
                         help="Download directory for job dependencies",
-                        action='store', default=path('~/.raindance/cache'))
+                        action='store', default=cache)
 
     parser.add_argument('--dryrun',
                         help="Check deps and availability, but do nothing",
