@@ -34,12 +34,12 @@ cli = CLI(version='0.0', context_factory=make_context)
 cli.add_generic_options(genopts)
 
 
-@cli.command('raindance.pkgidx:deps_command')
-def deps(parser):
+@cli.command('raindance.shrinkwrap:command')
+def shrinkwrap(parser):
     """
     List the all jobs
     """
-    parser.add_argument('name', help="directory w/ compiled packages",
+    parser.add_argument('name', help="job to shrinkwrap",
                         type=str)
 
     cache = path(resources.user.path) / 'cpkg-cache'
