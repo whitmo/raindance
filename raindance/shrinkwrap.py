@@ -26,7 +26,34 @@ def command(ctx, pargs):
 
     dep_data = [(pkg, data[pkg]) for pkg in job.packages]
     results = [x for x in get_deps(rsession, pargs.index, dep_data, dd)]
-    print jdump(results)
+
+    if pargs.dryrun:
+        print(jdump(results))
+        return 0
+
+    failed = [x[1] for x in results if not x[0]]
+    if len(failed):
+        logger.error('Files missing for %s', failed)
+        return 1
+
+    od = pargs.output_dir
+    if not od.exists():
+        od.makedirs()
+
+    pkg_dir = od / 'packages'
+    pkg_dir.mkdir_p()
+
+    for name, fp in ((y, z) for x, y, z in results):
+        dest = pkg_dir / name
+        fp.copy(dest)
+
+    jobout = od / 'job'
+    if jobout.exists():
+        jobout.rmtree()
+
+    job.copytree(jobout)
+
+    return 0
 
 
 def get_data(session, url, dd):
@@ -40,7 +67,7 @@ def get_data(session, url, dd):
             logger.error("Issue with connecting to %s: %s", url, resp)
             return json.loads(raw)
 
-        if dest.read_hexhash('md5') == resp.headers['etag']:
+        if '"%s"' % dest.read_hexhash('md5') == resp.headers['etag']:
             logger.debug("loading %s from cache", dest)
             return json.loads(raw)
 

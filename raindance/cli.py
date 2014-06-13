@@ -42,6 +42,9 @@ def shrinkwrap(parser):
     parser.add_argument('name', help="job to shrinkwrap",
                         type=str)
 
+    parser.add_argument('output_dir', help="directory to populate",
+                        type=path)
+
     cache = path(resources.user.path) / 'cpkg-cache'
     parser.add_argument('--cache-dir',
                         help="Download directory for job dependencies",
