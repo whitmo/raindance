@@ -21,4 +21,5 @@ Draft instructions in release-cf.sh
 
 # TODO
 
-Automate this so we can recreate the build box if necessary.
+ - Automate this so we can recreate the build box if necessary.
+ - prefixing of index for architecture

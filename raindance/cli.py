@@ -7,6 +7,8 @@ import os
 import sys
 
 
+default_index_url = "http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com/"
+
 def make_context(cli, args):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
@@ -21,10 +23,9 @@ def genopts(parser):
                         type=path,
                         default=path('.').abspath() / 'cf-release')
 
-    index_url = 'http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com'
     parser.add_argument('-i', '--index', action='store',
                         help="URL of compiled package index",
-                        default=index_url)
+                        default=default_index_url)
 
     parser.add_argument('-n',  '--release-number', action='store', default=None,
                         help="Release number")
