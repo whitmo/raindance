@@ -7,7 +7,8 @@ import os
 import sys
 
 
-default_index_url = "http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com/"
+default_index_url = "http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com"
+
 
 def make_context(cli, args):
     logging.basicConfig(level=logging.DEBUG)
@@ -27,7 +28,9 @@ def genopts(parser):
                         help="URL of compiled package index",
                         default=default_index_url)
 
-    parser.add_argument('-n',  '--release-number', action='store', default=None,
+    #@@ calculated latest release
+    parser.add_argument('-n',  '--release-number', action='store',
+                        default='172-dev.1',
                         help="Release number")
 
 
@@ -40,7 +43,8 @@ def shrinkwrap(parser):
     """
     List the all jobs
     """
-    parser.add_argument('name', help="job to shrinkwrap",
+
+    parser.add_argument('job', help="job to shrinkwrap",
                         type=str)
 
     parser.add_argument('output_dir', help="directory to populate",

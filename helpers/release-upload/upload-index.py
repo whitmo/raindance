@@ -20,7 +20,7 @@ def main():
     key = bucket.get_key('%s/index.json' % pargs.release)
     key.set_metadata('Content-Type', 'application/json')
 
-    key.set_contents_from_filename('index.json')
+    key.set_contents_from_filename('index.yml')
     key.set_acl('public-read')
     return 0
 

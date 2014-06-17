@@ -25,7 +25,7 @@ setup(name='raindance',
           'pyyaml',
           's3po',
           'subparse',
-          'requests',
+          'grequests',
           'clint'
       ],
       entry_points="""
