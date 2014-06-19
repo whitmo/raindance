@@ -31,14 +31,13 @@ class filepath(object):
     def __init__(self, name, loader=None):
         self.name = name
         self.loader = loader
-        self._cache = None
 
     def __get__(self, path, type=None):
         if self.loader is None:
             return path / self.name
-        if self._cache is None:
-            self._cache = self.loader(path / self.name)
-        return self._cache
+        if not getattr(path, '_fpcache', None):
+            path._fpcache = self.loader(path / self.name)
+        return path._fpcache
 
 
 class submap_value(object):
