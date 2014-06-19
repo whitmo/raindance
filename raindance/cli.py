@@ -2,6 +2,7 @@ from .release import Release
 from clint import resources
 from path import path
 from subparse import CLI
+import tempfile
 import logging
 import os
 import sys
@@ -36,6 +37,46 @@ def genopts(parser):
 
 cli = CLI(version='0.0', context_factory=make_context)
 cli.add_generic_options(genopts)
+
+@cli.command('raindance.pipeline:upload_job_artefacts')
+def upload_jobs(parser):
+    parser.add_argument('exported_packages', help="export to upload",
+                        type=path)    
+
+    parser.add_argument('--bucket', help="s3 bucket for export upload",
+                        default='cf-exported-releases')
+
+    parser.add_argument('--workdir', type=path, 
+                        help="working directory for preparing job artefacts",
+                        default=path(tempfile.mkdtemp(prefix='cf-job-artefacts')))
+
+    env = os.environ.get
+    parser.add_argument('--secret-key', help="aws secret key",
+                        default=env('AWS_SECRET_KEY', ''))
+
+    parser.add_argument('--access-key', help="aws access key",
+                        default=os.environ.get('AWS_ACCESS_KEY', ''))
+
+    return parser
+
+
+@cli.command('raindance.pipeline:upload_export')
+def upload_export(parser):
+    parser.add_argument('tarball', help="export to upload",
+                        type=path)    
+
+    parser.add_argument('--bucket', help="s3 bucket for export upload",
+                        default='cf-exported-releases')
+
+    env = os.environ.get
+    parser.add_argument('--secret-key', help="aws secret key",
+                        default=env('AWS_SECRET_KEY', ''))
+
+    parser.add_argument('--access-key', help="aws access key",
+                        default=os.environ.get('AWS_ACCESS_KEY', ''))
+
+    return parser
+
 
 
 @cli.command('raindance.shrinkwrap:command')
