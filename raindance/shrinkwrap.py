@@ -6,7 +6,7 @@ import gevent.monkey
 import grequests
 import json
 import logging
-
+import util
 
 gevent.monkey.patch_all()
 jdump = partial(json.dumps, indent=2)
@@ -58,9 +58,7 @@ class ShrinkWrap(object):
         dest = self.cache / self.manifest
         dest = self.save_or_reload(url, dest)
         data = load_yaml(dest)
-        data = dict((x['package_name'],
-                     (x['compiled_package_sha1'],
-                      x['blobstore_id'])) for x in data['compiled_packages'])
+        data = util.packages_from_manifest(data)
         return data
 
     @staticmethod
