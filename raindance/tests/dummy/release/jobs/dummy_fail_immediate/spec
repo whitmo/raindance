@@ -1,0 +1,6 @@
+---
+name: dummy_fail_immediate
+templates:
+  ctl.erb: bin/dummy_fail_immediate_ctl
+
+packages: []

@@ -1,0 +1,17 @@
+---
+name: dummy_with_properties
+templates:
+  ctl.erb: bin/dummy_with_properties_ctl
+  errand_script: bin/run
+
+packages: []
+
+properties:
+  dummy_with_properties.echo_value:
+    description: "This value will be echoed before startup"
+    default: 10.1
+
+  dummy_with_properties.sleep_value:
+    description: "This value will be slept for"
+  dummy_with_properties.exit_value:
+    description: "This value will be echoed on exit"

@@ -1,0 +1,5 @@
+# abort script on any command that exits with a non zero value
+set -e
+
+mkdir ${BOSH_INSTALL_TARGET}/some_dummy_package
+echo "this is a dummy package" > ${BOSH_INSTALL_TARGET}/some_dummy_package/some_dummy_package_contents
