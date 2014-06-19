@@ -55,3 +55,20 @@ class submap_value(object):
 def load_yaml(path):
     with open(path) as stream:
         return yaml.load(stream, yaml.SafeLoader)
+
+@contextmanager
+def pushd(newdir):
+    newdir = path(newdir)
+    curdir = path('.').abspath()
+    try:
+        newdir.chdir()
+        yield newdir
+    finally:
+        curdir.chdir()
+
+
+def packages_from_manifest(data):
+    data = dict((x['package_name'],
+                 (x['compiled_package_sha1'],
+                  x['blobstore_id'])) for x in data['compiled_packages'])
+    return data
