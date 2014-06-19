@@ -36,6 +36,10 @@ class Release(path.path):
     releases = filepath('releases')
     jobs = filepath('jobs')
 
+    @property
+    def joblist(self):
+        return (self.job_ctor(x) for x in self.jobs.dirs())
+
     def query_job(self, job):
         job_p = self.jobs / job
         if not job_p.exists():
