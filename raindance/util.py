@@ -1,8 +1,11 @@
-import yaml
+from contextlib import contextmanager
+from path import path
 import gevent
 import logging
+import yaml
 
 logger = logging.getLogger(__name__)
+
 
 class Waiter(list):
     def __init__(self):
