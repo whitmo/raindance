@@ -2,6 +2,19 @@
   - exported compiled packages may not include all desired packages
     (CF Runtime Team does not deploy all jobs inside cf-release)
 
+# s3 up
+
+gvm : https://github.com/moovweb/gvmeb/gvm
+gvm install go1.3
+gvm use 1.3
+
+go get github.com/rlmcpherson/s3gof3r
+
+https://gowalker.org/github.com/rlmcpherson/s3gof3r
+
+ - requires env vars in key.sh
+ 
+
 # New Pipeline
 
 ## upload
@@ -31,4 +44,5 @@
   - generate new charms 
   - upgrade list for charms 
 
- 
+## 
+
