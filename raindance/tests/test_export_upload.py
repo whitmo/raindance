@@ -1,5 +1,7 @@
 from itertools import count
 from mock import Mock
+from mock import patch
+from mock import call
 from path import path
 from raindance.util import pushd
 import tarfile
@@ -23,12 +25,6 @@ class TestUploadExport(object):
         ue.upload(data)
         assert ue.s3.upload.called
         assert ue.s3.upload.call_args[0][1] == 'dummy-0+dev.3-9364d68b-amd64.tar.gz'
-
-# def test_upload_command():
-#     from raindance.pipeline import UploadExport
-    
-#     with patch('raindance.pipeline.UploadExport.upload'), patch('raindance.pipeline.UploadExport.extract_manifest_data'):
-#         assert UploadExport.command(Mock(name='ctx'), Mock(name='pargs')) == 0
 
 
 class TestUploadJobArtefacts(object):
