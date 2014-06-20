@@ -3,9 +3,6 @@ from functools import partial
 import json
 
 
-def job_command(ctx, pargs):
-    pass
-
 jdump = partial(json.dumps, indent=2)
 
 
