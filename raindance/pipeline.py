@@ -58,7 +58,7 @@ class UploadJobArtefacts(object):
 
             self.verify_file(blob, sha1)
 
-            dest = packages / '%s-%s' %(pkg, sha1)
+            dest = packages / '%s-%s.tgz' %(pkg, sha1)
             blob.copy(dest)
             yield True, pkg
 
