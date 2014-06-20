@@ -48,7 +48,7 @@ def upload_jobs(parser):
 
     parser.add_argument('--workdir', type=path, 
                         help="working directory for preparing job artefacts",
-                        default=path(tempfile.mkdtemp(prefix='cf-job-artefacts')))
+                        default=path(tempfile.mkdtemp(prefix='cf-job-artifacts-')))
 
     env = os.environ.get
     parser.add_argument('--secret-key', help="aws secret key",
