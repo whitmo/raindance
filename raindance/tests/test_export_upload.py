@@ -39,7 +39,6 @@ class TestUploadJobArtefacts(object):
     dummy = here /  'dummy'
     dummy_cpc = dummy / 'dummy-compiled-packages.tgz'
     dummy_release = dummy / 'release'
-    
 
     def makeone(self, release=None):
         from raindance.pipeline import UploadJobArtefacts
@@ -66,7 +65,6 @@ class TestUploadJobArtefacts(object):
 
     def test_populate_template_pkg_placement(self):
         from raindance.release import Release
-
         uja = self.makeone(release=Release(self.dummy_release))
         uja.setup()
         uja.extract_packages(self.dummy_cpc, uja.workdir)
@@ -74,20 +72,28 @@ class TestUploadJobArtefacts(object):
         out = next(x for x in uja.populate_job_templates() if x.endswith('dummy_with_package'))
         assert set([str(x.basename()) for x in out.files()]) == set(('monit', 'spec'))
         assert set([str(x.basename()) for x in out.dirs()]) == set(('templates', 'packages'))
-        assert (out / 'packages/dummy_package-6b02ba72f6d0285a65166048b2e4522d7c126f7f').exists()
+        pkg = out / 'packages/dummy_package-6b02ba72f6d0285a65166048b2e4522d7c126f7f.tgz'
+        assert pkg.exists()
 
     def test_populate_template_bad_package(self):
         from raindance.release import Release
-
         uja = self.makeone(release=Release(self.dummy_release))
         uja.setup()
         uja.extract_packages(self.dummy_cpc, uja.workdir)
         uja.log = Mock(name='logger')
-        out = [x for x in uja.populate_job_templates()]
+        [x for x in uja.populate_job_templates()]
         assert uja.log.error.called
         assert 'bad_package' in uja.log.error.call_args[0]
 
+    def test_checkout_release(self):
+        from raindance.release import Release
+        with patch('subprocess.check_call') as sp:
+            uja = self.makeone(release=Release(self.dummy_release))
+            uja.setup()
+            sha = uja.manifest_data['release_commit_hash']
+            uja.checkout_release(sha)
+            assert sp.called
+            assert sp.call_args == call('git checkout 9364d68b', shell=True)
 
-    
         
     
