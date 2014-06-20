@@ -1,12 +1,14 @@
+from . import util
 from boto.exception import S3ResponseError
 from path import path
-from . import util
 import gevent
 import gevent.monkey
 import logging
 import s3po
+import subprocess
 import tarfile
 import yaml
+
 
 gevent.monkey.patch_all()
 
@@ -83,6 +85,10 @@ class UploadJobArtefacts(object):
                 tgz.add('.')
             yield dest
 
+    def checkout_release(self, sha):
+        with util.pushd(self.release):
+            subprocess.check_call('git checkout %s' %sha, shell=True)
+
     @classmethod
     def command(cls, ctx, pargs):
         logger.info(pargs.workdir)
@@ -94,10 +100,15 @@ class UploadJobArtefacts(object):
         if not uja.manifest.exists():
             uja.extract_packages(pargs.exported_packages, pargs.workdir)
 
+        sha = uja.manifest_data['release_commit_hash']
+        uja.checkout_release(sha)
+
         tds = uja.populate_job_templates()
 
         for tarball in uja.tarzip_jobs(tds):
-            print(tarball)
+            uja.log.info("Finished %s", tarball)
+        print(tarball.parent)
+
 
 upload_job_artefacts = UploadJobArtefacts.command
 
