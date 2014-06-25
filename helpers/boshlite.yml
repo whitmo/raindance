@@ -4,6 +4,7 @@
    vars:
      stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
      rubby: source /home/ubuntu/.bosh-boilerplate-src.sh &&
+     pye:
      rel: 173
      lastchar: sed 's/^.*\(.\)$/\1/'
      workdir: /opt/packages
@@ -17,6 +18,7 @@
         - emacs
         - git
         - unzip
+        - python-virtualenv
 
     - name: opt dir
       sudo: true
@@ -25,6 +27,11 @@
     - name: work dir
       sudo: true
       file: path={{workdir}} state=directory user=ubuntu group=ubuntu
+
+    - name: install raindance
+      sudo: true
+      pip: name='git+https://github.com/whitmo/raindance.git' virtualenv={{workdir}}
+    - set_fact: workon='source {{workdir}}/bin/activate &&'
 
     - name: boshlite checkout
       sudo: true
@@ -107,18 +114,31 @@
              executable=/bin/bash"
 
     - name: edit manifest
-      replace: dest=/opt/boshlite/manifests/cf-manifest.yml regexp=lucid replace=trusty
+      replace: dest=/opt/boshlite/manifests/cf-manifest.yml
+               regexp=lucid
+               replace=trusty
 
     - name: upload manifest
       shell: "{{rubby}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
               executable=/bin/bash"
 
+    - name: grab name of bungled export
+      shell: ls -1 /tmp/compiled_packages | tail -1
+      register: cpcname
+
+    - set_fact: cpc_tgz=cpcname.stdout
+
     - name: run deploy
       shell: "{{rubby}} bosh deploy -n"
       async: 600
       poll: 50
+      when: not cpc_tgz
 
     - name: run export
       shell: "{{rubby}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
       async: 600
       poll: 50
+      when: not cpc_tgz
+
+    - name: place file
+      command: mv /tmp/compile_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
