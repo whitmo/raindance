@@ -154,9 +154,8 @@
       file: path={{workdir}}/packages.tar.gz owner=ubuntu group=ubuntu
 
     - name: process export
-      shell: "{{bp}} rd pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
-              executable=/bin/bash
-              creates={{workdir}}/out"
+      shell: "{{bp}} rd -p /opt/cf-release pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
+              executable=/bin/bash"
 
     - name: upload jobs to s3
       shell: "{{bp}} s3-paraput
@@ -165,5 +164,5 @@
               --prefix=cf-{{rel}}/amd64
               --bucket=cf-compiled-packages
               ./
-              chdir={{workdir}}/out
+              chdir={{workdir}}/out/artefacts
               executable=/bin/bash"
