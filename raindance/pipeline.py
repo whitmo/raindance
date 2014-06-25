@@ -110,7 +110,7 @@ class UploadJobArtefacts(object):
         print(tarball.parent)
 
 
-upload_job_artefacts = UploadJobArtefacts.command
+create_artefacts = UploadJobArtefacts.command
 
 
 class UploadExport(object):
@@ -151,7 +151,3 @@ class UploadExport(object):
 
 
 upload_export = UploadExport.command
-
-
-
-    
