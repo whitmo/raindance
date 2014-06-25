@@ -3,7 +3,7 @@
    remote_user: ubuntu
    vars:
      stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
-     rubby: source /home/ubuntu/.bosh-boilerplate-src.sh &&
+     bp: source /home/ubuntu/.bosh-boilerplate-src.sh &&
      pye:
      rel: 173
      lastchar: sed 's/^.*\(.\)$/\1/'
@@ -81,7 +81,7 @@
       file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
 
     - name: target bosh locally
-      shell: "{{rubby}} bosh target localhost
+      shell: "{{bp}} bosh target localhost
              executable=/bin/bash"
 
     - name: check stemcell count
@@ -90,18 +90,18 @@
       register: stemcell_count
 
     - name: upload stemcell to bosh
-      shell: "{{rubby}} bosh upload stemcell {{stemcell_uri}}
+      shell: "{{bp}} bosh upload stemcell {{stemcell_uri}}
              executable=/bin/bash"
       when: stemcell_count.rc == 0 and stemcell_count.stdout == 0
       async: 60
 
     - name: check releases
-      shell: "{{rubby}} bosh releases | tail -1 | {{lastchar}}
+      shell: "{{bp}} bosh releases | tail -1 | {{lastchar}}
               executable=/bin/bash"
       register: howmany_rel
 
     - name: upload release to bosh
-      shell: "{{rubby}} bosh upload release releases/cf-{{rel}}.yml
+      shell: "{{bp}} bosh upload release releases/cf-{{rel}}.yml
              chdir=/opt/cf-release
              executable=/bin/bash"
       when: "howmany_rel.stdout < 2"
@@ -109,7 +109,7 @@
       poll: 20
 
     - name: spiff up manifest
-      shell: "{{rubby}} ./scripts/make_manifest_spiff
+      shell: "{{bp}} ./scripts/make_manifest_spiff
              chdir=/opt/boshlite
              executable=/bin/bash"
 
@@ -119,7 +119,7 @@
                replace=trusty
 
     - name: upload manifest
-      shell: "{{rubby}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
+      shell: "{{bp}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
               executable=/bin/bash"
 
     - name: grab name of bungled export
@@ -129,16 +129,24 @@
     - set_fact: cpc_tgz=cpcname.stdout
 
     - name: run deploy
-      shell: "{{rubby}} bosh deploy -n"
+      shell: "{{bp}} bosh deploy -n"
       async: 600
       poll: 50
       when: not cpc_tgz
 
     - name: run export
-      shell: "{{rubby}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
+      shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
       async: 600
       poll: 50
       when: not cpc_tgz
 
     - name: place file
       command: mv /tmp/compile_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
+
+    - name: process export
+      shell: "{{bp}} rd pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
+              executable=/bin/bash
+              creates={{workdir}}/out"
+
+    - name: upload jobs to s3
+      shell: echo whee
