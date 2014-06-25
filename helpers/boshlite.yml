@@ -1,0 +1,124 @@
+---
+ - hosts: blbox
+   remote_user: ubuntu
+   vars:
+     stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
+     rubby: source /home/ubuntu/.bosh-boilerplate-src.sh &&
+     rel: 173
+     lastchar: sed 's/^.*\(.\)$/\1/'
+     workdir: /opt/packages
+   tasks:
+    - name: Install the os deps
+      sudo: true
+      tags: repos
+      apt: pkg={{item}} state=present update_cache=yes
+      with_items:
+        - tmux
+        - emacs
+        - git
+        - unzip
+
+    - name: opt dir
+      sudo: true
+      file: path=/opt state=directory
+
+    - name: work dir
+      sudo: true
+      file: path={{workdir}} state=directory user=ubuntu group=ubuntu
+
+    - name: boshlite checkout
+      sudo: true
+      git: repo=https://github.com/cloudfoundry/bosh-lite.git dest=/opt/boshlite depth=1
+
+    - name: fetch spiff
+      sudo: true
+      get_url: url=https://github.com/cloudfoundry-incubator/spiff/releases/download/v1.0/spiff_linux_amd64.zip dest=/opt/spiff.zip
+
+    - name: unzip spiff
+      sudo: true
+      command: unzip /opt/spiff.zip chdir=/usr/bin creates=/usr/bin/spiff creates=/usr/bin/spiff
+
+    - name: cf-release checkout
+      sudo: true
+      git: repo=https://github.com/cloudfoundry/cf-release.git
+           dest=/opt/cf-release
+
+    - name: fix ownership for cf-release
+      sudo: true
+      command: chown -R ubuntu:ubuntu /opt/cf-release
+
+    - name: fix ownership for bosh-lite
+      sudo: true
+      command: chown -R ubuntu:ubuntu /opt/boshlite
+
+    - name: update release
+      shell: git checkout master && git pull --rebase  && ./update chdir=/opt/cf-release
+
+    - name: cf-release checkout release
+      command: git checkout v{{rel}} chdir=/opt/cf-release
+
+    - name: boilerplate source
+      copy: src=ec2-setup/bosh-boilerplate-src.sh dest=/home/ubuntu/.bosh-boilerplate-src.sh
+
+    - name: add rbenv to bashrc
+      lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.bosh-boilerplate-src.sh"
+
+    - name: bosh cred
+      copy: src=ec2-setup/bosh-cred-src.sh dest=/home/ubuntu/.bosh-cred-src.sh
+
+    - name: add bosh cred to bashrc
+      lineinfile: dest=/home/ubuntu/.bashrc line=". .bosh-cred-src.sh"
+
+    - name: bosh_config
+      sudo: true
+      file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
+
+    - name: target bosh locally
+      shell: "{{rubby}} bosh target localhost
+             executable=/bin/bash"
+
+    - name: check stemcell count
+      sudo: true
+      shell: ls /opt/warden/stemcells | wc -w
+      register: stemcell_count
+
+    - name: upload stemcell to bosh
+      shell: "{{rubby}} bosh upload stemcell {{stemcell_uri}}
+             executable=/bin/bash"
+      when: stemcell_count.rc == 0 and stemcell_count.stdout == 0
+      async: 60
+
+    - name: check releases
+      shell: "{{rubby}} bosh releases | tail -1 | {{lastchar}}
+              executable=/bin/bash"
+      register: howmany_rel
+
+    - name: upload release to bosh
+      shell: "{{rubby}} bosh upload release releases/cf-{{rel}}.yml
+             chdir=/opt/cf-release
+             executable=/bin/bash"
+      when: "howmany_rel.stdout < 2"
+      async: 120
+      poll: 20
+
+    - name: spiff up manifest
+      shell: "{{rubby}} ./scripts/make_manifest_spiff
+             chdir=/opt/boshlite
+             executable=/bin/bash"
+
+    - name: edit manifest
+      replace: dest=/opt/boshlite/manifests/cf-manifest.yml regexp=lucid replace=trusty
+
+    - name: upload manifest
+      shell: "{{rubby}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
+              executable=/bin/bash"
+
+    - name: run deploy
+      shell: "{{rubby}} bosh deploy -n"
+      async: 600
+      poll: 50
+
+    - name: run export
+      shell: "{{rubby}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
+      async: 600
+      poll: 50
