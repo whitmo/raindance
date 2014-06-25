@@ -3,7 +3,7 @@
    remote_user: ubuntu
    vars:
      stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
-     bp: source /home/ubuntu/.bosh-boilerplate-src.sh &&
+     bp: source /home/ubuntu/.boilerplate-src.sh &&
      pye:
      rel: 173
      lastchar: sed 's/^.*\(.\)$/\1/'
