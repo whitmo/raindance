@@ -26,11 +26,11 @@
 
     - name: work dir
       sudo: true
-      file: path={{workdir}} state=directory user=ubuntu group=ubuntu
+      file: path={{workdir}} state=directory owner=ubuntu group=ubuntu
 
     - name: install raindance
       sudo: true
-      pip: name='git+https://github.com/whitmo/raindance.git' virtualenv={{workdir}}
+      pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
     - set_fact: workon='source {{workdir}}/bin/activate &&'
 
     - name: boshlite checkout
@@ -58,6 +58,10 @@
       sudo: true
       command: chown -R ubuntu:ubuntu /opt/boshlite
 
+    - name: fix ownership for packages
+      sudo: true
+      command: chown -R ubuntu:ubuntu {{workdir}}
+
     - name: update release
       shell: git checkout master && git pull --rebase  && ./update chdir=/opt/cf-release
 
@@ -65,16 +69,10 @@
       command: git checkout v{{rel}} chdir=/opt/cf-release
 
     - name: boilerplate source
-      copy: src=ec2-setup/bosh-boilerplate-src.sh dest=/home/ubuntu/.bosh-boilerplate-src.sh
+      template: src=ec2-setup/bosh-boilerplate-src.sh dest=/home/ubuntu/.boilerplate-src.sh
 
     - name: add rbenv to bashrc
-      lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.bosh-boilerplate-src.sh"
-
-    - name: bosh cred
-      copy: src=ec2-setup/bosh-cred-src.sh dest=/home/ubuntu/.bosh-cred-src.sh
-
-    - name: add bosh cred to bashrc
-      lineinfile: dest=/home/ubuntu/.bashrc line=". .bosh-cred-src.sh"
+      lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
 
     - name: bosh_config
       sudo: true
@@ -122,26 +120,37 @@
       shell: "{{bp}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
               executable=/bin/bash"
 
+    - name: check for packages.tar.gz
+      file: path={{workdir}}/packages.tar.gz state=file
+      register: pkgtgz
+
     - name: grab name of bungled export
       shell: ls -1 /tmp/compiled_packages | tail -1
       register: cpcname
 
-    - set_fact: cpc_tgz=cpcname.stdout
+    - set_fact:
+        pkg_exists: "{{pkgtgz.state}} == 'file'"
+        cpc_tgz: "{{cpcname.stdout}}"
 
     - name: run deploy
-      shell: "{{bp}} bosh deploy -n"
+      shell: "{{bp}} bosh deploy -n executable=/bin/bash"
       async: 600
       poll: 50
-      when: not cpc_tgz
+      when: not cpc_tgz and not pkg_exists
 
     - name: run export
       shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
       async: 600
       poll: 50
-      when: not cpc_tgz
+      when: not cpc_tgz and not pkg_exists
 
     - name: place file
-      command: mv /tmp/compile_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
+      sudo: true
+      command: cp /tmp/compiled_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
+
+    - name: fix ownership
+      sudo: true
+      file: path={{workdir}}/packages.tar.gz owner=ubuntu group=ubuntu
 
     - name: process export
       shell: "{{bp}} rd pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
@@ -149,4 +158,11 @@
               creates={{workdir}}/out"
 
     - name: upload jobs to s3
-      shell: echo whee
+      shell: "{{bp}} s3-paraput
+              --content-type=application/x-tar
+              --grant=public-read
+              --prefix=cf-{{rel}}/amd64
+              --bucket=cf-compiled-packages
+              ./
+              chdir={{workdir}}/out
+              executable=/bin/bash"
