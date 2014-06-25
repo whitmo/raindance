@@ -93,6 +93,7 @@ class UploadJobArtefacts(object):
     def command(cls, ctx, pargs):
         logger.info(pargs.workdir)
         release = ctx['release']
+        assert release.exists()
 
         uja = cls(pargs.workdir, release)
         uja.setup()
