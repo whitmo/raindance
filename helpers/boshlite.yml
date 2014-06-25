@@ -19,6 +19,7 @@
         - git
         - unzip
         - python-virtualenv
+        - python-dev
 
     - name: opt dir
       sudo: true
