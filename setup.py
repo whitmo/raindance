@@ -28,8 +28,10 @@ setup(name='raindance',
           'grequests',
           'clint'
       ],
+
       entry_points="""
       [console_scripts]
       rd=raindance.cli:main
+      s3-paraput=raindance.paraput:main
       """,
       )
