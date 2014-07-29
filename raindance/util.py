@@ -58,6 +58,7 @@ def load_yaml(path):
     with open(path) as stream:
         return yaml.load(stream, yaml.SafeLoader)
 
+
 @contextmanager
 def pushd(newdir):
     newdir = path(newdir)
