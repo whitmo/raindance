@@ -91,7 +91,7 @@
       shell: "{{bp}} bosh upload stemcell {{stemcell_uri}}
              executable=/bin/bash"
       when: stemcell_count.rc == 0 and stemcell_count.stdout == "0"
-      async: 60
+      async: 120
 
     - name: check releases
       shell: "{{bp}} bosh releases | tail -1 | {{lastchar}}
@@ -123,20 +123,24 @@
     - name: check for packages.tar.gz
       file: path={{workdir}}/packages.tar.gz state=file
       register: pkgtgz
+      ignore_errors: true
 
     - name: grab name of bungled export
       shell: ls -1 /tmp/compiled_packages | tail -1
       register: cpcname
 
     - set_fact:
-        pkg_exists: "{{pkgtgz.state}} == 'file'"
+        pkg_exists: "{{pkgtgz.state == 'file'}}"
         cpc_tgz: "{{cpcname.stdout}}"
+
+    - set_fact:
+        run_deploy: "{{not cpc_tgz and not pkg_exists == 'False'}}"
 
     - name: run deploy
       shell: "{{bp}} bosh deploy -n executable=/bin/bash"
       async: 600
       poll: 50
-      when: not cpc_tgz and not pkg_exists
+      when: run_deploy == "False"
 
     - name: run export
       shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
