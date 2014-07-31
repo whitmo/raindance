@@ -4,14 +4,14 @@
    vars:
      stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
      bp: source /home/ubuntu/.boilerplate-src.sh &&
-     rel: 173
+     rel:
      lastchar: sed 's/^.*\(.\)$/\1/'
      workdir: /opt/packages
    tasks:
     - name: Install the os deps
       sudo: true
       tags: repos
-      apt: pkg={{item}} state=present update_cache=yes
+      apt: pkg={{item}} state=present update_cache=yes cache_valid_time="{{60*60*10}}"
       with_items:
         - tmux
         - emacs
