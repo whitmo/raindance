@@ -149,19 +149,35 @@
         cpc_tgz: "{{cpcname.stdout}}"
 
     - set_fact:
-        run_deploy: "{{not cpc_tgz and not pkg_exists == 'False'}}"
+        run_deploy: "{{cpc_tgz | bool or pkg_exists | bool}}"
 
     - name: run deploy
-      shell: "{{bp}} bosh deploy -n executable=/bin/bash"
-      async: 600
+      shell: "{{bp}} bosh -n deploy executable=/bin/bash"
+      async: 2400
       poll: 50
-      when: run_deploy == "False"
+      when: run_deploy | bool
 
     - name: run export
-      shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}"
+      shell: "{{bp}} bosh export compiled_package cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
+             executable=/bin/bash"
       async: 600
       poll: 50
-      when: not cpc_tgz and not pkg_exists
+      when: not cpc_tgz and not {{pkg_exists | bool}}
+
+    - name: grab name of export
+      shell: ls -1 /tmp/compiled_packages | tail -1
+      register: cpcname
+
+    - set_fact:
+        cpc_tgz: "{{cpcname.stdout}}"
+
+    - name: delete downloaded export tgz
+      shell: rm /opt/packages/cf-{{rel}}*.tgz
+      ignore_errors: true
+
+    - name: delete deployment
+      shell: "{{bp}} bosh -n delete deployment cf-warden executable=/bin/bash"
+
 
     - name: place file
       sudo: true
