@@ -91,20 +91,35 @@
       shell: "{{bp}} bosh upload stemcell {{stemcell_uri}}
              executable=/bin/bash"
       when: stemcell_count.rc == 0 and stemcell_count.stdout == "0"
-      async: 120
+      async: 6000
+      poll: 30
 
     - name: check releases
       shell: "{{bp}} bosh releases | tail -1 | {{lastchar}}
               executable=/bin/bash"
       register: howmany_rel
 
+    - set_fact:
+        uploaded_release_cnt: howmany_rel.stdout
+
+    - set_fact:
+        do_upload_release: "{{uploaded_release_cnt | int < 2}}"
+
     - name: upload release to bosh
       shell: "{{bp}} bosh upload release releases/cf-{{rel}}.yml
              chdir=/opt/cf-release
              executable=/bin/bash"
-      when: "howmany_rel.stdout < 2"
-      async: 120
-      poll: 20
+      when: do_upload_release | bool
+      async: 1800
+      poll: 40
+      ignore_errors: true
+      register: release_upload
+
+    - set_fact:
+        already_uploaded: "{{release_upload.stderr == 'This release version has already been uploaded' or release.rc == 0}}"
+
+    - fail: msg="release {{rel}} failed to upload"
+      when: not already_uploaded | bool
 
     - name: spiff up manifest
       shell: "{{bp}} ./scripts/make_manifest_spiff
