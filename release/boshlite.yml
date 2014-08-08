@@ -149,16 +149,17 @@
         cpc_tgz: "{{cpcname.stdout}}"
 
     - set_fact:
-        run_deploy: "{{cpc_tgz | bool or pkg_exists | bool}}"
+        deployed: "{{cpc_tgz | bool or pkg_exists | bool}}"
 
     - name: run deploy
       shell: "{{bp}} bosh -n deploy executable=/bin/bash"
       async: 2400
       poll: 50
-      when: run_deploy | bool
+      when: not deployed | bool
+
 
     - name: run export
-      shell: "{{bp}} bosh export compiled_package cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
+      shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
              executable=/bin/bash"
       async: 600
       poll: 50
