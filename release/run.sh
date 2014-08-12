@@ -7,4 +7,4 @@ EOF
 
 cat ./inventory.ini
 
-ansible-playbook -vv -e "rel=$1" -e "aaki=${AWS_ACCESS_KEY}" -e "asak=${AWS_SECRET_ACCESS_KEY}"  -i ./inventory.ini  ./boshlite.yml $3
+ansible-playbook -vv -e "rel=$1" -e "aaki=${AWS_ACCESS_KEY}" -e "asak=${AWS_SECRET_ACCESS_KEY}"  -i ./inventory.ini $3  ./boshlite.yml
