@@ -62,11 +62,11 @@
       sudo: true
       command: chown -R ubuntu:ubuntu {{workdir}}
 
-    - name: update release
-      shell: git checkout master && git pull --rebase  && ./update chdir=/opt/cf-release
-
     - name: cf-release checkout release
       command: git checkout v{{rel}} chdir=/opt/cf-release
+
+    - name: update release
+      shell: git checkout master && git pull --rebase  && ./update chdir=/opt/cf-release
 
     - name: boilerplate source
       template: src=ec2-setup/bosh-boilerplate-src.sh dest=/home/ubuntu/.boilerplate-src.sh
