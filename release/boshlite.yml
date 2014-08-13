@@ -37,6 +37,10 @@
       sudo: true
       git: repo=https://github.com/cloudfoundry/bosh-lite.git dest=/opt/boshlite depth=1
 
+    - name: fix ownership for bosh-lite
+      sudo: true
+      command: chown -R ubuntu:ubuntu /opt/boshlite
+
     - name: fetch spiff
       sudo: true
       get_url: url=https://github.com/cloudfoundry-incubator/spiff/releases/download/v1.0/spiff_linux_amd64.zip dest=/opt/spiff.zip
@@ -48,25 +52,28 @@
     - name: cf-release checkout
       sudo: true
       git: repo=https://github.com/cloudfoundry/cf-release.git
+           version=v{{rel}}
            dest=/opt/cf-release
 
     - name: fix ownership for cf-release
       sudo: true
       command: chown -R ubuntu:ubuntu /opt/cf-release
 
-    - name: fix ownership for bosh-lite
-      sudo: true
-      command: chown -R ubuntu:ubuntu /opt/boshlite
-
     - name: fix ownership for packages
       sudo: true
       command: chown -R ubuntu:ubuntu {{workdir}}
 
-    - name: cf-release checkout release
-      command: git checkout v{{rel}} chdir=/opt/cf-release
+    - name: sync submodules
+      shell: git submodule foreach --recursive 'git submodule sync; git clean -d --force --force'
+             chdir=/opt/cf-release
 
-    - name: update release
-      shell: git checkout master && git pull --rebase  && ./update chdir=/opt/cf-release
+    - name: update submodules
+      shell: git submodule update --init --recursive --force
+             chdir=/opt/cf-release
+
+    - name: clean repo
+      shell: git clean -ffd
+             chdir=/opt/cf-release
 
     - name: boilerplate source
       template: src=ec2-setup/bosh-boilerplate-src.sh dest=/home/ubuntu/.boilerplate-src.sh
@@ -116,7 +123,7 @@
       register: release_upload
 
     - set_fact:
-        already_uploaded: "{{release_upload.stderr == 'This release version has already been uploaded' or release.rc == 0}}"
+        already_uploaded: "{{release_upload.stderr == 'This release version has already been uploaded' or release_upload.rc == 0}}"
 
     - fail: msg="release {{rel}} failed to upload"
       when: not already_uploaded | bool
@@ -156,7 +163,6 @@
       async: 2400
       poll: 50
       when: not deployed | bool
-
 
     - name: run export
       shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
