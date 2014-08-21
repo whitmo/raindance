@@ -157,7 +157,7 @@
       register: number_of_deployments_sh
 
     - set_fact:
-        number_of_deployments: number_of_deployments_sh.stdout
+        number_of_deployments: "{{number_of_deployments_sh.stdout}}"
 
     - set_fact:
         deployed: "{{cpc_tgz | bool or pkg_exists | bool or number_of_deployments | int > 0}}"
