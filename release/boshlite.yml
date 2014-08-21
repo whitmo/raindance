@@ -11,11 +11,8 @@
     - name: Install the os deps
       sudo: true
       tags: repos
-      apt: pkg={{item}} state=present update_cache=yes cache_valid_time="{{60*60*10}}"
+      apt: pkg={{item}} state=present cache_valid_time="{{60*60*10}}" update_cache=yes
       with_items:
-        - tmux
-        - emacs
-        - git
         - unzip
         - python-virtualenv
         - python-dev
