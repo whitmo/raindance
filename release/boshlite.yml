@@ -47,7 +47,7 @@
 
     - name: unzip spiff
       sudo: true
-      command: unzip /opt/spiff.zip chdir=/usr/bin creates=/usr/bin/spiff creates=/usr/bin/spiff
+      command: unzip /opt/spiff.zip chdir=/usr/bin creates=/usr/bin/spiff
 
     - name: cf-release checkout
       sudo: true
