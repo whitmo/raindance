@@ -155,8 +155,15 @@
         pkg_exists: "{{pkgtgz.state == 'file'}}"
         cpc_tgz: "{{cpcname.stdout}}"
 
+    - name: check for deployment
+      shell: "{{bp}} bosh deployments | grep -P 'cf\/{{rel}}' -c"
+      register: number_of_deployments_sh
+
     - set_fact:
-        deployed: "{{cpc_tgz | bool or pkg_exists | bool}}"
+        number_of_deployments: number_of_deployments_sh.stdout
+
+    - set_fact:
+        deployed: "{{cpc_tgz | bool or pkg_exists | bool or number_of_deployments | int > 0}}"
 
     - name: run deploy
       shell: "{{bp}} bosh -n deploy executable=/bin/bash"
