@@ -34,7 +34,6 @@
     - name: install raindance
       sudo: true
       pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
-    - set_fact: workon='source {{workdir}}/bin/activate &&'
 
     - name: boshlite checkout
       sudo: true
