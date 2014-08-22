@@ -7,6 +7,9 @@
      rel:
      lastchar: sed 's/^.*\(.\)$/\1/'
      workdir: /opt/packages
+     # force error if aws creds not passed in
+     aaki: {{aaki}}
+     asak: {{asak}}
    tasks:
     - name: Install the os deps
       sudo: true
@@ -16,6 +19,9 @@
         - unzip
         - python-virtualenv
         - python-dev
+
+    - fail: msg="incomplete aws credentials"
+      when: not asak | bool or not aaki | bool
 
     - name: opt dir
       sudo: true
