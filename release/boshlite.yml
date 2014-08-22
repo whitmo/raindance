@@ -155,9 +155,10 @@
     - name: check for deployment
       shell: "{{bp}} bosh deployments | grep -P 'cf\/{{rel}}' -c"
       register: number_of_deployments_sh
+      ignore_errors: true
 
     - set_fact:
-        number_of_deployments: "{{number_of_deployments_sh.stdout}}"
+        number_of_deployments: "{{number_of_deployments_sh.stdout | default(0)}}"
 
     - set_fact:
         deployed: "{{cpc_tgz | bool or pkg_exists | bool or number_of_deployments | int > 0}}"
@@ -167,6 +168,8 @@
       async: 2400
       poll: 50
       when: not deployed | bool
+      ignore_errors: true
+      register: deploy_result
 
     - name: run export
       shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
@@ -188,7 +191,7 @@
 
     - name: delete deployment
       shell: "{{bp}} bosh -n delete deployment cf-warden executable=/bin/bash"
-
+      ignore_errors: true
 
     - name: place file
       sudo: true

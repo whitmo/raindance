@@ -26,7 +26,7 @@ We'll need to launch bosh-lite into ec2.
     export BOSH_LITE_SECURITY_GROUP='juju-boshlite'
     export BOSH_LITE_KEYPAIR='juju'
     export AWS_ACCESS_KEY=$BOSH_AWS_ACCESS_KEY_ID
-    export AWS_SECRET_KEY=$BOSH_AWS_SECRET_ACCESS_KEY
+    export AWS_SECRET_ACCESS_KEY=$BOSH_AWS_SECRET_ACCESS_KEY
     ```
 
  0. `git checkout https://github.com/cloudfoundry/bosh-lite.git`
