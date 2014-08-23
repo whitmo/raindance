@@ -1,0 +1,103 @@
+---
+- debug: msg="ATT --  we fail fast if proper arguments go missing."
+
+- set_fact:
+    rel_set: "{{rel | default(False) }}"
+    aaki_set: "{{aaki | default(False) }}"
+    asak_set: "{{asak | default(False) }}"
+
+- fail: msg="no release number -- {{rel}}"
+  when: not rel_set
+
+- fail: msg="no aws access key -- {{aaki | len}}"
+  when: not aaki_set
+
+- fail: msg="no aws secret key -- {{asak | len}}"
+  when: not asak_set
+
+- name: Install the os deps
+  sudo: true
+  tags: repos
+  apt: pkg={{item}}
+       state=present
+       cache_valid_time="{{60*60*10}}"
+       update_cache=yes
+  with_items:
+    - unzip
+    - python-virtualenv
+    - python-dev
+
+- debug: msg="Let's Export the packages"
+
+- name: opt dir
+  sudo: true
+  file: path=/opt state=directory
+
+- name: work dir
+  sudo: true
+  file: path={{workdir}} state=directory owner=ubuntu group=ubuntu
+
+- name: check for packages.tar.gz
+  file: path={{workdir}}/packages.tar.gz state=file
+  register: pkgtgz
+  ignore_errors: true
+
+- name: install raindance
+  sudo: true
+  pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
+
+- name: grab name of bungled export
+  shell: ls -1 /tmp/compiled_packages | tail -1
+  register: cpcname
+
+- set_fact:
+    pkg_exists: "{{pkgtgz.state == 'file'}}"
+    cpc_tgz: "{{cpcname.stdout}}"
+
+- set_fact:
+    cpc_tgz_exists: "{{ cpc_tgz | len | bool }}"
+
+- name: boilerplate source
+  template: src=ec2-setup/bosh-boilerplate-src.sh
+            dest=/home/ubuntu/.boilerplate-src.sh
+
+- name: place boilerplate in bashrc
+  lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
+
+- include: release-deploy-export.yml
+  when: not cpc_tgz_exists
+
+- name: delete downloaded export tgz
+  shell: rm /opt/packages/cf-{{rel}}*.tgz
+  ignore_errors: true
+
+- name: delete deployment
+  shell: "{{bp}} bosh -n delete deployment cf-warden executable=/bin/bash"
+  ignore_errors: true
+
+- name: place file
+  sudo: true
+  command: cp /tmp/compiled_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
+
+- name: fix ownership
+  sudo: true
+  file: path={{workdir}}/packages.tar.gz owner=ubuntu group=ubuntu
+
+- name: clear out
+  sudo: true
+  command: "rm -rf {{workdir}}/out
+            removes={{workdir}}/out/artefacts"
+
+- name: process export
+  shell: "{{bp}} rd -p /opt/cf-release pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
+          executable=/bin/bash"
+
+- name: upload jobs to s3
+  shell: "{{bp}} s3-paraput
+          --content-type=application/x-tar
+          --grant=public-read
+          --prefix=cf-{{rel}}/amd64
+          --bucket=cf-compiled-packages
+          ./
+          chdir={{workdir}}/out/artefacts
+          executable=/bin/bash"

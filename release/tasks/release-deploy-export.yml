@@ -1,45 +1,5 @@
 ---
-- debug: msg="ATT --  we fail fast if proper arguments go missing."
-
-- set_fact:
-    rel_set: "{{rel | default(False) }}"
-    aaki_set: "{{aaki | default(False) }}"
-    asak_set: "{{asak | default(False) }}"
-
-- fail: msg="no release number -- {{rel}}"
-  when: not rel_set
-
-- fail: msg="no aws access key -- {{aaki | len}}"
-  when: not aaki_set
-
-- fail: msg="no aws secret key -- {{asak | len}}"
-  when: not asak_set
-
-- name: Install the os deps
-  sudo: true
-  tags: repos
-  apt: pkg={{item}}
-       state=present
-       cache_valid_time="{{60*60*10}}"
-       update_cache=yes
-  with_items:
-    - unzip
-    - python-virtualenv
-    - python-dev
-
-- debug: msg="Let's Export the packages"
-
-- name: opt dir
-  sudo: true
-  file: path=/opt state=directory
-
-- name: work dir
-  sudo: true
-  file: path={{workdir}} state=directory owner=ubuntu group=ubuntu
-
-- name: install raindance
-  sudo: true
-  pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
+# The boshiness
 
 - name: boshlite checkout
   sudo: true
@@ -73,17 +33,10 @@
   sudo: true
   command: chown -R ubuntu:ubuntu {{workdir}}
 
-- include: tasks/cf-submodules.yml
+- include: cf-submodules.yml
   when: cf_checkout.changed
 
-- name: boilerplate source
-  template: src=ec2-setup/bosh-boilerplate-src.sh
-            dest=/home/ubuntu/.boilerplate-src.sh
-
-- name: place boilerplate in bashrc
-  lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
-
-- name: bosh_config
+- name: bosh config
   sudo: true
   file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
 
@@ -144,19 +97,6 @@
   shell: "{{bp}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
           executable=/bin/bash"
 
-- name: check for packages.tar.gz
-  file: path={{workdir}}/packages.tar.gz state=file
-  register: pkgtgz
-  ignore_errors: true
-
-- name: grab name of bungled export
-  shell: ls -1 /tmp/compiled_packages | tail -1
-  register: cpcname
-
-- set_fact:
-    pkg_exists: "{{pkgtgz.state == 'file'}}"
-    cpc_tgz: "{{cpcname.stdout}}"
-
 - name: check for deployment
   shell: "{{bp}} bosh deployments | grep 'cf/{{rel}}' -c executable=/bin/bash"
   register: number_of_deployments_sh
@@ -166,7 +106,7 @@
     number_of_deployments: "{{number_of_deployments_sh.stdout | default(0)}}"
 
 - set_fact:
-    deployed: "{{cpc_tgz | bool or pkg_exists | bool or number_of_deployments | int > 0}}"
+    deployed: "{{number_of_deployments | int > 0}}"
 
 - name: run deploy
   shell: "{{bp}} bosh -n deploy executable=/bin/bash"
@@ -181,41 +121,11 @@
          executable=/bin/bash"
   async: 600
   poll: 50
-  when: not cpc_tgz and not {{pkg_exists | bool}}
 
+# hack around deploy issues
 - name: grab name of export
   shell: ls -1 /tmp/compiled_packages | tail -1
   register: cpcname
 
 - set_fact:
     cpc_tgz: "{{cpcname.stdout}}"
-
-- name: delete downloaded export tgz
-  shell: rm /opt/packages/cf-{{rel}}*.tgz
-  ignore_errors: true
-
-- name: delete deployment
-  shell: "{{bp}} bosh -n delete deployment cf-warden executable=/bin/bash"
-  ignore_errors: true
-
-- name: place file
-  sudo: true
-  command: cp /tmp/compiled_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
-
-- name: fix ownership
-  sudo: true
-  file: path={{workdir}}/packages.tar.gz owner=ubuntu group=ubuntu
-
-- name: process export
-  shell: "{{bp}} rd -p /opt/cf-release pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
-          executable=/bin/bash"
-
-- name: upload jobs to s3
-  shell: "{{bp}} s3-paraput
-          --content-type=application/x-tar
-          --grant=public-read
-          --prefix=cf-{{rel}}/amd64
-          --bucket=cf-compiled-packages
-          ./
-          chdir={{workdir}}/out/artefacts
-          executable=/bin/bash"
