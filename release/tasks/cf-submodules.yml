@@ -1,0 +1,12 @@
+---
+- name: sync submodules
+  shell: git submodule foreach --recursive 'git submodule sync; git clean -d --force --force'
+         chdir=/opt/cf-release
+
+- name: update submodules
+  shell: git submodule update --init --recursive --force
+         chdir=/opt/cf-release
+
+- name: clean repo
+  shell: git clean -ffd
+         chdir=/opt/cf-release
