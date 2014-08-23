@@ -1,0 +1,17 @@
+{
+    "Id": "export-bucket-policy",
+    "Statement": [
+        {
+            "Action": "s3:*",
+            "Effect": "Allow",
+            "Principal": {
+                "CanonicalUser": "1eba9e75838dc090eecc4a794df0b2c393523195cbf5cdcb5202d670b9d7848f"
+            },
+            "Resource": [
+                "arn:aws:s3:::cf-compiled-packages/*",
+                "arn:aws:s3:::cf-compiled-packages"
+            ],
+            "Sid": "individually scoped access"
+        }
+    ]
+}
