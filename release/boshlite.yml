@@ -8,4 +8,4 @@
     - ./vars/base-vars.yml
     - ./vars/run-vars.yml
   tasks:
-    - include: tasks/export-packages.yml
+    - include: tasks/export-upload.yml
