@@ -1,5 +1,5 @@
 ---
-# The boshiness
+# The boshness
 
 - name: boshlite checkout
   sudo: true
@@ -60,9 +60,10 @@
   shell: "{{bp}} bosh releases | grep '| cf.*| {{rel}}' -c
           executable=/bin/bash"
   register: howmany_rel
+  ignore_errors: true
 
 - set_fact:
-    uploaded_release_cnt: howmany_rel.stdout
+    uploaded_release_cnt: "{{howmany_rel.stdout}}"
 
 - set_fact:
     do_upload_release: "{{uploaded_release_cnt | int < 2}}"
