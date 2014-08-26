@@ -31,12 +31,34 @@ def genopts(parser):
 
     #@@ calculated latest release
     parser.add_argument('-n',  '--release-number', action='store',
-                        default='173',
+                        default='180',
                         help="Release number")
 
 
 cli = CLI(version='0.0', context_factory=make_context)
 cli.add_generic_options(genopts)
+
+
+@cli.command('raindance.pipeline:prep_export')
+def prep_export(parser):
+    """
+    Rearrange exported packages for upload to juju cf release archive
+
+    (http://cf-packages.s3-website-us-east-1.amazonaws.com)
+    """
+    parser.add_argument('exported_packages', help="export to upload",
+                        type=path)
+
+    tempdir = path(tempfile.mkdtemp(prefix='cf-job-artifacts-'))
+    parser.add_argument('--workdir', type=path,
+                        help="working directory for preparing job artefacts",
+                        default=tempdir)
+
+    parser.add_argument('--outdir', type=path,
+                        help="final output directory",
+                        default=tempdir / 'final')
+
+    return parser
 
 
 @cli.command('raindance.pipeline:create_artefacts')
