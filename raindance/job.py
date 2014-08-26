@@ -31,5 +31,5 @@ def print_spec(ctx, pargs):
     attrs = ['properties', 'packages', 'templates']
     filter_by = [x for x in attrs if getattr(pargs, x)]
     if any(filter_by):
-        spec = {attr:spec[attr] for attr in filter_by}
+        spec = {attr: spec[attr] for attr in filter_by}
     print(jdump(spec))

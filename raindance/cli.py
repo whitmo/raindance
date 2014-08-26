@@ -38,6 +38,7 @@ def genopts(parser):
 cli = CLI(version='0.0', context_factory=make_context)
 cli.add_generic_options(genopts)
 
+
 @cli.command('raindance.pipeline:create_artefacts')
 def pack_jobs(parser):
     """

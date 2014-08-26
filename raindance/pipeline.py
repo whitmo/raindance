@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class UploadJobArtefacts(object):
     manifest = 'compiled_packages.MF'
+
     def __init__(self, workdir, release, logger=logger):
         self.release = release
         self.manifest = workdir / self.manifest
