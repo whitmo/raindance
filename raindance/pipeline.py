@@ -15,7 +15,42 @@ gevent.monkey.patch_all()
 logger = logging.getLogger(__name__)
 
 
+class PrepExport(object):
+    manifest = 'compiled_packages.MF'
+
+    def __init__(self, packages, outdir, release, arch='amd64', logger=logger):
+        self.release = release
+        self.packages = packages
+        self.manifest = packages / self.manifest
+        self.blobs = packages / 'compiled_packages/blobs'
+        self.outdir = outdir
+        self.arch = arch
+        self.log = logger
+
+    def prepare_template(self):
+        for d in self.outdir, self.outdir / 'packages':
+            d.mkdir()
+
+    @property
+    def manifest_data(self):
+        return util.load_yaml(self.manifest)
+
+    def verify_file(self, path, sha1):
+        assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
+
+    def prep_export(ctx, pargs):
+        logger.info(pargs.workdir)
+        release = ctx['release']
+        assert release.exists()
+        assert not self.outdir.exists(), "%s exists. Please move or change directory for output"
+        pe = cls(pargs.workdir, pargs.outdir, release)
+        assert pe.manifest.exists(), "Not decompressed compiled packages"
+        mani_data = pe.manifest_data
+
+
+
 class UploadJobArtefacts(object):
+    # deprecated
     manifest = 'compiled_packages.MF'
 
     def __init__(self, workdir, release, logger=logger):
