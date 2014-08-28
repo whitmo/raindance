@@ -1,4 +1,5 @@
 from . import util
+from .package import PackageArchive
 from boto.exception import S3ResponseError
 from path import path
 import gevent
@@ -8,6 +9,7 @@ import s3po
 import subprocess
 import tarfile
 import yaml
+import json
 
 
 gevent.monkey.patch_all()
@@ -27,25 +29,121 @@ class PrepExport(object):
         self.arch = arch
         self.log = logger
 
-    def prepare_template(self):
-        for d in self.outdir, self.outdir / 'packages':
-            d.mkdir()
+        self.release_number = self.manifest_data['release_version']
+        self.commit_hash = self.manifest_data['release_commit_hash']
+        self.release_name = self.manifest_data['release_name']
 
-    @property
+        subtemplate = (
+            self.reldir,
+            self.pkgdir,
+            self.verdir,
+            self.jobdir,
+            self.archdir
+            ) = PackageArchive.release_template_paths(self.outdir,
+                                                      self.release_name,
+                                                      self.release_version)
+
+        self.dir_template = (self.outdir,) + subtemplate
+
+        self.archfile = self.archdir / ("%s.json" % self.arch)
+        self.release_sha1 = self.reldir / 'release-sha1.txt'
+        self.logger = logger
+
+    @util.reify
+    def export_data(self):
+        data = self.manifest_data
+        return [(x['package_name'],
+                 (x['compiled_package_sha1'],
+                  x['blobstore_id'])) for x in data['compiled_packages']]
+
+    @util.reify
     def manifest_data(self):
         return util.load_yaml(self.manifest)
 
-    def verify_file(self, path, sha1):
-        assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
 
-    def prep_export(ctx, pargs):
+
+    def dependency_data(self, packages, export_data):
+        for package in packages:
+            out = export_data.get(package, (None, None))
+            if all(out):
+                yield package, out
+            else:
+                yield (package, (False, False))
+
+    def create_job_tgzs(self, jobdir, jobdata):
+        for job, packages in jobdata:
+            tmp = jobdir / job.basename()
+            job.copytree(tmp)
+            dest = jobdir / "{}.tgz".format(job.basename())
+            with util.pushd(tmp), tarfile.open(dest, 'w:gz') as tgz:
+                tgz.add('.')
+            tmp.rmtree()
+            yield job, dest
+
+    verify_file = PackageArchive.verify_file
+
+    def verified_pkg_list(self):
+        for pkg, (sha1, bsid) in self.export_data:
+            blob = self.blobs / bsid
+            self.verify_file(blob, sha1)
+            new_name = '%s-%s.tgz' % (pkg, sha1)
+            dest = self.pkgdir / new_name
+            yield pkg, sha1, dest, blob
+
+    def pkr(self, name, (sha1, version)):
+        return dict(name=name, sha1=sha1, filename=version)
+
+    def arch_manifest_data(self, jobdata, pkg_map, tgz_map):
+        for job, pkgs in jobdata:
+            packages = []
+            error = False
+            for pkg in pkgs:
+                pkg_data = pkg_map.get(pkg, None)
+                if pkg_data is None:
+                    self.logger.warn("Bad package: %s", pkg)
+                    error = True
+                    continue
+                packages.append(self.pkr(pkg, pkg_data))
+            out = dict(name=job.basename(),
+                       metadata=tgz_map[job],
+                       packages=packages)
+            if error is True:
+                out['error'] = True
+            yield out
+
+    @classmethod
+    def command(cls, ctx, pargs):
         logger.info(pargs.workdir)
         release = ctx['release']
         assert release.exists()
-        assert not self.outdir.exists(), "%s exists. Please move or change directory for output"
+
         pe = cls(pargs.workdir, pargs.outdir, release)
-        assert pe.manifest.exists(), "Not decompressed compiled packages"
-        mani_data = pe.manifest_data
+
+        assert not pe.outdir.exists(), "%s exists. Please move "\
+          "or change directory for output"
+
+        [d.mkdir() for d in pe.dir_template]
+
+        pkglist = pe.verified_pkg_list
+
+        jobdata = [(job, job.packages) for job in pe.release.joblist]
+
+        job_tgz_map = {x: y.basename() for x, y in \
+                       pe.create_job_tgzs(pe.jobdir, jobdata)}
+
+        pkg_map = {pkg: (sha1, dest.basename()) \
+                   for pkg, sha1, dest, _ in pkglist()}
+
+        [blob.copy(dest) for _, _, dest, blob in pkglist()]
+
+        amd = pe.arch_manifest_data(jobdata, pkg_map, job_tgz_map)
+        arch_txt = json.dumps(dict(jobs=list(amd)), indent=2)
+        pe.archfile.write_text(arch_txt)
+
+        pe.release_sha1.write_text(pe.commit_hash)
+        return pe
+
+
 
 
 
