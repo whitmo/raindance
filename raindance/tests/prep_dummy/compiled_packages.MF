@@ -1,0 +1,10 @@
+---
+release_name: dummy
+release_version: 0+dev.3
+release_commit_hash: 9364d68b
+compiled_packages:
+- package_name: dummy_package
+  package_fingerprint: c6614b0e144721286079e787f92c4c10d4b13871
+  compiled_package_sha1: 6b02ba72f6d0285a65166048b2e4522d7c126f7f
+  stemcell_sha1: 2428bf73fa9bd903b173e28509ac8e37046ccf17
+  blobstore_id: e8be9b00-ca2b-42b3-50bf-7c8f1d749908

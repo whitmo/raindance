@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo 'i am stdout'
+
+sleep <%= properties.dummy_with_properties.sleep_value %>
+
+echo 'i am stderr' > /dev/stderr
+
+exit <%= properties.dummy_with_properties.exit_value %>
