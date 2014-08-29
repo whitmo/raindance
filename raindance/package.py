@@ -9,24 +9,30 @@ class PackageArchive(object):
     Represents fs representation of a package archive
     """
 
+    log = logger
+
     def __init__(self, root_url, software=None, version=None, arch=None):
         #@@ add support for version range
         self.root_url = root_url
         self.software = software
         self.version = version
         self.arch = arch
-        self.http = requests.Session()
+
+    @reify
+    def http(self):
+        return requests.Session()
 
     def grab_manifest(self):
-        res = self.http.get(root_url)
+        mani_url = path(self.root_url) / "index.json"
+        res = self.http.get(mani_url)
         if not res.ok():
-            raise RuntimeError('Request for %s failed: %s',  root_url, res)
+            raise RuntimeError('Request for %s failed: %s',  mani_url, res)
         manifest = res.json()
         return manifest
 
     def save_arch_manifest(self, software, version, archdir, arch):
-        archurl = path(self.root_url) / software / version / 'arch' / afname
         afname = '{}.json'.format(arch)
+        archurl = path(self.root_url) / software / version / 'arch' / afname
         archfile = archdir / afname
         res = self.http.get(str(archurl))
         if not res.ok():
@@ -68,9 +74,27 @@ class PackageArchive(object):
     def verify_file(path, sha1):
         assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
 
+    @staticmethod
+    def wget(self, url, outfile):
+        retry = True
+        while retry:
+            self.log.info('Downloading %s to %s' % (url, outfile))
+            try:
+                cmd = ['wget', '-t0', '-c', '-nv', url, '-O', outfile]
+                subprocess.check_call(cmd)
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 4:  # always retry network errors
+                    self.log.warn('Network error, retrying download: %s', url)
+                    retry = True
+                else:
+                    raise
+            else:
+                retry = False
+
     def save_packages(self, pkgdir, packages):
         for pkg in packages:
-            outpath = _
+            outpath = pkgdir / pkg
+            pkg_url = path(self.root_url) / self.release
             self.verfiy_file(outpath, pkg['sha1'])
 
     def build_mirror_section(self, targetdir, software, releases):
