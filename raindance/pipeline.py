@@ -41,7 +41,7 @@ class PrepExport(object):
             self.archdir
             ) = PackageArchive.release_template_paths(self.outdir,
                                                       self.release_name,
-                                                      self.release_version)
+                                                      self.release_number)
 
         self.dir_template = (self.outdir,) + subtemplate
 
@@ -80,7 +80,7 @@ class PrepExport(object):
             tmp.rmtree()
             yield job, dest
 
-    verify_file = PackageArchive.verify_file
+    verify_file = staticmethod(PackageArchive.verify_file)
 
     def verified_pkg_list(self):
         for pkg, (sha1, bsid) in self.export_data:

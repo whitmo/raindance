@@ -1,7 +1,10 @@
+from .util import reify
 from path import path
+import logging
 import requests
+import subprocess
 
-
+logger = logging.getLogger(__name__)
 
 
 class PackageArchive(object):
