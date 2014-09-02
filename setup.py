@@ -23,9 +23,7 @@ setup(name='raindance',
       install_requires=[
           'path.py',
           'pyyaml',
-          's3po',
           'subparse',
-          'grequests',
           'clint'
       ],
 

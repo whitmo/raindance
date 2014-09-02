@@ -4,7 +4,6 @@ from path import path
 from subparse import CLI
 import tempfile
 import logging
-import os
 import sys
 
 
@@ -61,67 +60,10 @@ def prep_export(parser):
     return parser
 
 
-@cli.command('raindance.pipeline:create_artefacts')
-def pack_jobs(parser):
-    """
-    Zip compiled packages into jobs
-    """
-    parser.add_argument('exported_packages', help="export to upload",
-                        type=path)
-
-    parser.add_argument('--workdir', type=path,
-                        help="working directory for preparing job artefacts",
-                        default=path(tempfile.mkdtemp(prefix='cf-job-artifacts-')))
-
-    return parser
-
-
-@cli.command('raindance.pipeline:upload_export')
-def upload_export(parser):
-    """
-    Archive out original output for safekeeping
-    """
-    parser.add_argument('tarball', help="export to upload",
-                        type=path)
-
-    parser.add_argument('--bucket', help="s3 bucket for export upload",
-                        default='cf-exported-releases')
-
-    env = os.environ.get
-    parser.add_argument('--secret-key', help="aws secret key",
-                        default=env('AWS_SECRET_KEY', ''))
-
-    parser.add_argument('--access-key', help="aws access key",
-                        default=os.environ.get('AWS_ACCESS_KEY', ''))
-
-    return parser
-
-
-@cli.command('raindance.job:print_spec')
-def spec(parser):
-    "spec in json for a job"
-    parser.add_argument('name', help="json rendering of spec",
+@cli.command('raindance.pipeline:update_release_manifest')
+def update_release_manifest(parser):
+    parser.add_argument('specifier', help="{software}/{version}-{arch}",
                         type=str)
-
-    parser.add_argument('-p', '--packages', help="show packages",
-                        action='store_true', default=False)
-
-    parser.add_argument('-t', '--templates', help="show templates",
-                        action='store_true', default=False)
-
-    parser.add_argument('-a', '--properties', help="show properties",
-                        action='store_true', default=False)
-    return parser
-
-
-
-
-@cli.command('raindance.job:print_jobs')
-def jobs(parser):
-    """
-    List the all jobs
-    """
-    return parser
 
 
 main = cli.run

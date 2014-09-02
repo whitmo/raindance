@@ -1,33 +1,9 @@
 from contextlib import contextmanager
 from path import path
-import gevent
 import logging
 import yaml
 
 logger = logging.getLogger(__name__)
-
-
-class Waiter(list):
-    def __init__(self):
-        self.greenlets = []
-
-    def spawn(self, func, *args, **kw):
-        g = gevent.spawn(func, *args, **kw)
-        self.greenlets.append(g)
-
-    @property
-    def results(self):
-        for greenlet in self.greenlets:
-            status = greenlet.successful()
-            yield status, greenlet.value
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        if any(args):
-            raise
-        gevent.wait(self.greenlets)
 
 
 class filepath(object):
@@ -68,13 +44,6 @@ def pushd(newdir):
         yield newdir
     finally:
         curdir.chdir()
-
-
-def packages_from_manifest(data):
-    data = dict((x['package_name'],
-                 (x['compiled_package_sha1'],
-                  x['blobstore_id'])) for x in data['compiled_packages'])
-    return data
 
 
 class reify(object):

@@ -19,7 +19,7 @@ class PackageArchive(object):
         self.root_url = root_url
         self.software = software
         self.version = version
-        self.arch = arch
+        self.arch =  arch
 
     @reify
     def http(self):
@@ -45,12 +45,12 @@ class PackageArchive(object):
 
     def match_versions(self, releases):
         for version in releases:
-            version, arch = version
+            spec = version, arch = version
             if not any((self.version, self.arch)):
-                yield version
+                yield spec
 
             if self.version == version or self.arch == arch:
-                yield version
+                yield spec
 
     @staticmethod
     def release_template_paths(outdir, software, version):
@@ -68,7 +68,7 @@ class PackageArchive(object):
         url = path(self.root_url) / software / version / 'jobs' / filename
         res = self.http.get(url)
         if not res.ok():
-            raise RuntimeError('Request for %s failed: %s',  archurl, res)
+            raise RuntimeError('Request for %s failed: %s', url, res)
         newfile = jobdir / filename
         newfile.write_bytes(res.content)
         return newfile
@@ -93,12 +93,16 @@ class PackageArchive(object):
                     raise
             else:
                 retry = False
+        return outfile
 
     def save_packages(self, pkgdir, packages):
         for pkg in packages:
-            outpath = pkgdir / pkg
-            pkg_url = path(self.root_url) / self.release
-            self.verfiy_file(outpath, pkg['sha1'])
+            outpath = pkgdir / pkg['filename']
+            pkg_url = path(self.root_url) / 'packages' / pkg['filename']
+            outfile = self.wget(pkg_url, outpath)
+            assert outfile.exists()
+            self.verify_file(outfile, pkg['sha1'])
+            yield outfile
 
     def build_mirror_section(self, targetdir, software, releases):
         for version, arch in releases:
@@ -111,8 +115,8 @@ class PackageArchive(object):
 
             # could be concurrent
             for job in archdata['jobs']:
-                yield self.save_job_metadata(jobdir, job['metadata'])
-                for package in self.save_packages(job['packages']):
+                yield self.save_job_metadata(jobdir, job['metadata'], software, version)
+                for package in self.save_packages(pkgdir, job['packages']):
                     yield package
 
     @classmethod
