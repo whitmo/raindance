@@ -1,6 +1,5 @@
 from . import util
 from .package import PackageArchive
-from path import path
 import boto
 import json
 import logging
@@ -16,10 +15,10 @@ class UpdateReleaseManifest(object):
         """
         abuses convention of arch manifests
         """
-        archkeys = (key.name.split() for key in bucket.list() \
-                if key.name != 'index.json' and key.name.endswith('.json'))
+        archkeys = [key.name.split('/') for key in bucket.list() \
+                if key.name != 'index.json' and key.name.endswith('.json')]
 
-        for soft, version, _, archfile in archkeys:
+        for soft, version, archfile in archkeys:
             yield soft, [version, archfile.replace('.json', '')]
 
     @classmethod
@@ -34,7 +33,8 @@ class UpdateReleaseManifest(object):
             rels.append(rel)
 
         outstring = json.dumps(dict(releases=releases), indent=2)
-        idxk = bucket.get_key('index.json')
+        idxk = bucket.new_key('index.json')
+        idxk.content_type = 'application/json'
         idxk.set_contents_from_string(outstring)
         return 0
 
@@ -46,6 +46,8 @@ class UpdateReleaseManifest(object):
     def s3(self):
         return boto.connect_s3()
 
+
+update_release_manifest = UpdateReleaseManifest.command
 
 
 class PrepExport(object):
@@ -67,17 +69,16 @@ class PrepExport(object):
         subtemplate = (
             self.reldir,
             self.pkgdir,
-            self.verdir,
-            self.jobdir,
-            self.archdir
+            self.verdir
             ) = PackageArchive.release_template_paths(self.outdir,
                                                       self.release_name,
                                                       self.release_number)
 
         self.dir_template = (self.outdir,) + subtemplate
 
-        self.archfile = self.archdir / ("%s.json" % self.arch)
-        self.release_sha1 = self.reldir / 'release-sha1.txt'
+        self.jobsfile = self.verdir / 'jobs.tgz'
+        self.archfile = self.verdir / ("%s.json" % self.arch)
+        self.release_sha1 = self.verdir / 'sha1.txt'
         self.logger = logger
 
     @util.reify
@@ -99,15 +100,11 @@ class PrepExport(object):
             else:
                 yield (package, (False, False))
 
-    def create_job_tgzs(self, jobdir, jobdata):
-        for job, packages in jobdata:
-            tmp = jobdir / job.basename()
-            job.copytree(tmp)
-            dest = jobdir / "{}.tgz".format(job.basename())
-            with util.pushd(tmp), tarfile.open(dest, 'w:gz') as tgz:
-                tgz.add('.')
-            tmp.rmtree()
-            yield job, dest
+    def create_jobs_tgz(self):
+        jobssrc = self.release.jobs
+        with util.pushd(jobssrc), tarfile.open(self.jobsfile, 'w:gz') as tgz:
+            tgz.add('.')
+        return self.jobsfile
 
     verify_file = staticmethod(PackageArchive.verify_file)
 
@@ -122,7 +119,7 @@ class PrepExport(object):
     def pkr(self, name, (sha1, version)):
         return dict(name=name, sha1=sha1, filename=version)
 
-    def arch_manifest_data(self, jobdata, pkg_map, tgz_map):
+    def arch_manifest_data(self, jobdata, pkg_map):
         for job, pkgs in jobdata:
             packages = []
             error = False
@@ -134,7 +131,6 @@ class PrepExport(object):
                     continue
                 packages.append(self.pkr(pkg, pkg_data))
             out = dict(name=job.basename(),
-                       metadata=tgz_map[job],
                        packages=packages)
             if error is True:
                 out['error'] = True
@@ -147,15 +143,14 @@ class PrepExport(object):
 
         jobdata = [(job, job.packages) for job in self.release.joblist]
 
-        job_tgz_map = {x: y.basename() for x, y in \
-                       self.create_job_tgzs(self.jobdir, jobdata)}
+        self.create_jobs_tgz()
 
         pkg_map = {pkg: (sha1, dest.basename()) \
                    for pkg, sha1, dest, _ in pkglist()}
 
         [blob.copy(dest) for _, _, dest, blob in pkglist()]
 
-        amd = self.arch_manifest_data(jobdata, pkg_map, job_tgz_map)
+        amd = self.arch_manifest_data(jobdata, pkg_map)
         arch_txt = json.dumps(dict(jobs=list(amd)), indent=2)
         self.archfile.write_text(arch_txt)
 
@@ -163,14 +158,17 @@ class PrepExport(object):
 
     @classmethod
     def command(cls, ctx, pargs):
-        logger.info(pargs.workdir)
+        logger.info(pargs.exported_packages)
         release = ctx['release']
         assert release.exists()
 
-        pe = cls(pargs.workdir, pargs.outdir, release)
+        pe = cls(pargs.exported_packages, pargs.outdir, release)
 
         assert not pe.outdir.exists(), "%s exists. Please move "\
           "or change directory for output"
 
         pe.do_prep()
         return pe
+
+
+prep_export = PrepExport.command

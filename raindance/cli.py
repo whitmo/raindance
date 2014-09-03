@@ -7,12 +7,12 @@ import logging
 import sys
 
 
-default_bucket = 'cf-compiled-packages'
+default_bucket = 'cf-packages'
 s3_url = "http://{}.s3-website-us-east-1.amazonaws.com".format
 
 
 def make_context(cli, args):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     release = Release(args.releasepath)
     return dict(release=release, logger=logger)
@@ -66,10 +66,6 @@ def update_release_manifest(parser):
     parser.add_argument('-b', '--bucket', action='store',
                         help="bucket for index",
                         default=default_bucket)
-
-    parser.add_argument('specifier', help="{software}/{version}-{arch}",
-                        type=str)
-
 
 main = cli.run
 

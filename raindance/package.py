@@ -54,15 +54,13 @@ class PackageArchive(object):
 
     @staticmethod
     def release_template_paths(outdir, software, version):
-        (reldir, pkgdir, verdir, jobdir, archdir) = \
+        (reldir, pkgdir, verdir) = \
             (
                 outdir / software,
                 outdir / software / 'packages',
-                outdir / software / version,
-                outdir / software / version / 'jobs',
-                outdir / software / version / 'arch'
+                outdir / software / version
             )
-        return reldir, pkgdir, verdir, jobdir, archdir
+        return reldir, pkgdir, verdir
 
     def save_job_metadata(self, jobdir, filename, software, version):
         url = path(self.root_url) / software / version / 'jobs' / filename
