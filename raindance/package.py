@@ -19,7 +19,7 @@ class PackageArchive(object):
         self.root_url = root_url
         self.software = software
         self.version = version
-        self.arch =  arch
+        self.arch = arch
 
     @reify
     def http(self):

@@ -7,7 +7,8 @@ import logging
 import sys
 
 
-default_index_url = "http://cf-compiled-packages.s3-website-us-east-1.amazonaws.com"
+default_bucket = 'cf-compiled-packages'
+s3_url = "http://{}.s3-website-us-east-1.amazonaws.com".format
 
 
 def make_context(cli, args):
@@ -26,7 +27,7 @@ def genopts(parser):
 
     parser.add_argument('-i', '--index', action='store',
                         help="URL of compiled package index",
-                        default=default_index_url)
+                        default=s3_url(default_bucket))
 
     #@@ calculated latest release
     parser.add_argument('-n',  '--release-number', action='store',
@@ -62,6 +63,10 @@ def prep_export(parser):
 
 @cli.command('raindance.pipeline:update_release_manifest')
 def update_release_manifest(parser):
+    parser.add_argument('-b', '--bucket', action='store',
+                        help="bucket for index",
+                        default=default_bucket)
+
     parser.add_argument('specifier', help="{software}/{version}-{arch}",
                         type=str)
 
