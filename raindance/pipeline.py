@@ -1,32 +1,51 @@
 from . import util
 from .package import PackageArchive
 from path import path
+import boto
 import json
 import logging
 import requests
 import tarfile
-import boto
-
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateReleaseManifest(object):
+
+    def gen_rel_data(self, bucket):
+        """
+        abuses convention of arch manifests
+        """
+        archkeys = (key.name.split() for key in bucket.list() \
+                if key.name != 'index.json' and key.name.endswith('.json'))
+
+        for soft, version, _, archfile in archkeys:
+            yield soft, [version, archfile.replace('.json', '')]
+
     @classmethod
-    def command(self, ctx, pargs):
+    def command(cls, ctx, pargs):
         urm = cls()
-        murl = path(pargs.index) / 'index.json'
-        res = urm.http.get(murl)
-        if res.ok:
-            #update
-            pass
-        else:
-            #make new
-            pass
+        bucket = urm.s3.get_bucket(pargs.bucket)
+
+        releases = dict()
+
+        for soft, rel in urm.gen_rel_data(bucket):
+            rels = releases.setdefault(soft, [])
+            rels.append(rel)
+
+        outstring = json.dumps(dict(releases=releases), indent=2)
+        idxk = bucket.get_key('index.json')
+        idxk.set_contents_from_string(outstring)
+        return 0
 
     @util.reify
     def http(self):
         return requests.Session()
+
+    @util.reify
+    def s3(self):
+        return boto.connect_s3()
+
 
 
 class PrepExport(object):
@@ -71,8 +90,6 @@ class PrepExport(object):
     @util.reify
     def manifest_data(self):
         return util.load_yaml(self.manifest)
-
-
 
     def dependency_data(self, packages, export_data):
         for package in packages:
@@ -123,6 +140,27 @@ class PrepExport(object):
                 out['error'] = True
             yield out
 
+    def do_prep(self):
+        [d.mkdir() for d in self.dir_template]
+
+        pkglist = self.verified_pkg_list
+
+        jobdata = [(job, job.packages) for job in self.release.joblist]
+
+        job_tgz_map = {x: y.basename() for x, y in \
+                       self.create_job_tgzs(self.jobdir, jobdata)}
+
+        pkg_map = {pkg: (sha1, dest.basename()) \
+                   for pkg, sha1, dest, _ in pkglist()}
+
+        [blob.copy(dest) for _, _, dest, blob in pkglist()]
+
+        amd = self.arch_manifest_data(jobdata, pkg_map, job_tgz_map)
+        arch_txt = json.dumps(dict(jobs=list(amd)), indent=2)
+        self.archfile.write_text(arch_txt)
+
+        self.release_sha1.write_text(self.commit_hash)
+
     @classmethod
     def command(cls, ctx, pargs):
         logger.info(pargs.workdir)
@@ -134,23 +172,5 @@ class PrepExport(object):
         assert not pe.outdir.exists(), "%s exists. Please move "\
           "or change directory for output"
 
-        [d.mkdir() for d in pe.dir_template]
-
-        pkglist = pe.verified_pkg_list
-
-        jobdata = [(job, job.packages) for job in pe.release.joblist]
-
-        job_tgz_map = {x: y.basename() for x, y in \
-                       pe.create_job_tgzs(pe.jobdir, jobdata)}
-
-        pkg_map = {pkg: (sha1, dest.basename()) \
-                   for pkg, sha1, dest, _ in pkglist()}
-
-        [blob.copy(dest) for _, _, dest, blob in pkglist()]
-
-        amd = pe.arch_manifest_data(jobdata, pkg_map, job_tgz_map)
-        arch_txt = json.dumps(dict(jobs=list(amd)), indent=2)
-        pe.archfile.write_text(arch_txt)
-
-        pe.release_sha1.write_text(pe.commit_hash)
+        pe.do_prep()
         return pe
