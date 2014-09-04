@@ -72,9 +72,8 @@ class TestPackageArchive(unittest.TestCase):
             result = [x.replace(outdir, '.') for x in res1]
             assert result == [u'./dummy',
                     u'./dummy/1234',
-                    u'./dummy/1234/arch',
-                    u'./dummy/1234/arch/amd64.json',
-                    u'./dummy/1234/jobs',
-                    u'./dummy/1234/jobs/dummyjob.tgz',
+                    u'./dummy/1234/',
+                    u'./dummy/1234/amd64.json',
+                    u'./dummy/1234/jobs.tgz',
                     u'./dummy/packages',
                     u'./dummy/packages/dp-1234.tgz']
