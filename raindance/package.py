@@ -64,15 +64,6 @@ class PackageArchive(object):
             )
         return reldir, pkgdir, verdir
 
-    def save_job_metadata(self, verdir, filename, software, version):
-        url = path(self.root_url) / software / version / 'jobs.tgz'
-        res = self.http.get(url)
-        if not res.ok():
-            raise RuntimeError('Request for %s failed: %s', url, res)
-        newfile = verdir / filename
-        newfile.write_bytes(res.content)
-        return newfile
-
     @staticmethod
     def verify_file(path, sha1):
         assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
@@ -115,10 +106,18 @@ class PackageArchive(object):
 
             # could be concurrent
             for job in archdata['jobs']:
-                yield self.save_job_metadata(verdir, job['metadata'],
-                                             software, version)
+                yield self.save_job_metadata(verdir, software, version)
                 for package in self.save_packages(pkgdir, job['packages']):
                     yield package
+
+    def save_job_metadata(self, verdir, software, version):
+        url = path(self.root_url) / software / version / 'jobs.tgz'
+        res = self.http.get(url)
+        if not res.ok():
+            raise RuntimeError('Request for %s failed: %s', url, res)
+        newfile = verdir / "jobs.tgz"
+        newfile.write_bytes(res.content)
+        return newfile
 
     @classmethod
     def mirror_package_archive(cls, targetdir, root_url, software='cf',
