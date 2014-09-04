@@ -1,10 +1,12 @@
 from . import util
 from .package import PackageArchive
 import boto
+import hashlib
 import json
 import logging
 import requests
 import tarfile
+
 
 logger = logging.getLogger(__name__)
 
@@ -108,10 +110,11 @@ class PrepExport(object):
 
     verify_file = staticmethod(PackageArchive.verify_file)
 
-    def verified_pkg_list(self):
+    def verified_pkg_list(self, fingerprint):
         for pkg, (sha1, bsid) in self.export_data:
             blob = self.blobs / bsid
             self.verify_file(blob, sha1)
+            fingerprint.update(sha1)
             new_name = '%s-%s.tgz' % (pkg, sha1)
             dest = self.pkgdir / new_name
             yield pkg, sha1, dest, blob
@@ -139,22 +142,31 @@ class PrepExport(object):
     def do_prep(self):
         [d.mkdir() for d in self.dir_template]
 
-        pkglist = self.verified_pkg_list
+        fingerprint = hashlib.sha1()
 
         jobdata = [(job, job.packages) for job in self.release.joblist]
 
-        self.create_jobs_tgz()
+        jobsfile = self.create_jobs_tgz()
+        fingerprint.update(jobsfile.read_hexhash('sha1'))
+
+        pkglist = list(self.verified_pkg_list(fingerprint))
+
+        for _, _, dest, blob in pkglist:
+            blob.copy(dest)
 
         pkg_map = {pkg: (sha1, dest.basename()) \
-                   for pkg, sha1, dest, _ in pkglist()}
-
-        [blob.copy(dest) for _, _, dest, blob in pkglist()]
+                   for pkg, sha1, dest, _ in pkglist}
 
         amd = self.arch_manifest_data(jobdata, pkg_map)
-        arch_txt = json.dumps(dict(jobs=list(amd)), indent=2)
-        self.archfile.write_text(arch_txt)
+        fpval = fingerprint.hexdigest()
 
+        arch_txt = json.dumps(dict(jobs=list(amd),
+                                   fingerprint=fpval),
+                                   indent=2)
+
+        self.archfile.write_text(arch_txt)
         self.release_sha1.write_text(self.commit_hash)
+        return self
 
     @classmethod
     def command(cls, ctx, pargs):
@@ -168,7 +180,7 @@ class PrepExport(object):
           "or change directory for output"
 
         pe.do_prep()
-        return pe
+        return 0
 
 
 prep_export = PrepExport.command
