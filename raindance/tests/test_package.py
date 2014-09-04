@@ -58,14 +58,16 @@ class TestPackageArchive(unittest.TestCase):
             gm.return_value = dict(releases=dict(dummy=(('1234', 'amd64'),)))
             archd = hm.get().text = "ARCH DESC"
             jobd = hm.get().content = b"IM A FILE"
+            pkg = dict(name='dp',
+                       sha1='6b02ba72f6d0285a65166048b2e4522d7c126f7f',
+                       filename='dp-1234.tgz')
             dj = dict(jobs=[dict(name='dummyjob',
-                                 packages=(dict(name='dp',
-                                                sha1='6b02ba72f6d0285a65166048b2e4522d7c126f7f',
-                                                filename='dp-1234.tgz'),)
-                        )])
+                                 packages=(pkg,))],
+                      jobs_sha1='993fe02fd8f6f6fb36c9bb6a3a66e6a801297acc')
             hm.get().json.return_value = dj
 
-            report = PackageArchive('http://url').mirror_package_archive(outdir,  'dummy')
+            report = PackageArchive('http://url')\
+              .mirror_package_archive(outdir,  'dummy')
             res1 = sorted(outdir.walk())
             assert set(report) <= set(res1)
             result = [x.replace(outdir, '.') for x in res1]

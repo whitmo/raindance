@@ -106,7 +106,8 @@ class PackageArchive(object):
             for job in archdata['jobs']:
                 jobmd = self.save_job_metadata(verdir, software, version)
                 assert jobmd.read_hexhash('sha1') == archdata['jobs_sha1']
-                yield
+                yield jobmd
+
                 for package in self.save_packages(software, pkgdir, job['packages']):
                     yield package
 
