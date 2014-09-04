@@ -24,7 +24,7 @@ class TestPackageArchive(unittest.TestCase):
         pa = self.makeone()
         with patch('raindance.package.PackageArchive.http',
                    spec=requests.Session) as httpm:
-            httpm.get().ok.return_value = False
+            httpm.get().ok = False
             with self.assertRaises(RuntimeError):
                 pa.grab_manifest()
 
@@ -39,7 +39,7 @@ class TestPackageArchive(unittest.TestCase):
         with patch('raindance.package.PackageArchive.grab_manifest'):
             from raindance.package import PackageArchive
             with self.assertRaises(NotImplementedError):
-                PackageArchive.mirror_package_archive('.', 'http://url', None)
+                PackageArchive('http://url').mirror_package_archive('.', None)
 
     def test_mirror_package_archive(self):
         outdir = path(tempfile.mkdtemp(prefix='rd-test-')) / 'out'
@@ -65,7 +65,7 @@ class TestPackageArchive(unittest.TestCase):
                         )])
             hm.get().json.return_value = dj
 
-            report = PackageArchive.mirror_package_archive(outdir, 'http://url', 'dummy')
+            report = PackageArchive('http://url').mirror_package_archive(outdir,  'dummy')
             res1 = sorted(outdir.walk())
             assert set(report) <= set(res1)
             result = [x.replace(outdir, '.') for x in res1]

@@ -1,9 +1,9 @@
 from .util import reify
 from path import path
+from pprint import pformat
 import logging
 import requests
 import subprocess
-from pprint import pformat
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class PackageArchive(object):
     def grab_manifest(self):
         mani_url = path(self.root_url) / "index.json"
         res = self.http.get(mani_url)
-        if not res.ok():
+        if not res.ok:
             raise RuntimeError('Request for %s failed: %s',  mani_url, res)
         manifest = res.json()
         return manifest
@@ -38,7 +38,7 @@ class PackageArchive(object):
         archurl = path(self.root_url) / software / version / afname
         archfile = verdir / afname
         res = self.http.get(str(archurl))
-        if not res.ok():
+        if not res.ok:
             raise RuntimeError('Request for %s failed: %s',  archurl, res)
         archfile.write_text(res.text)
         return archfile, res.json()
@@ -111,7 +111,7 @@ class PackageArchive(object):
     def save_job_metadata(self, verdir, software, version):
         url = path(self.root_url) / software / version / 'jobs.tgz'
         res = self.http.get(url)
-        if not res.ok():
+        if not res.ok:
             raise RuntimeError('Request for %s failed: %s', url, res)
         newfile = verdir / "jobs.tgz"
         newfile.write_bytes(res.content)
@@ -136,9 +136,12 @@ class PackageArchive(object):
         arch = pargs.arch
 
         pa = cls(root_url, version, arch)
+
+
+        targetdir.makedirs_p()
         files = pa.mirror_package_archive(targetdir, software)
         pa.log.debug(pformat(files))
         return 0
 
 
-mirror_pa = PackageArchive.mirror_package_archive
+mirror_pa = PackageArchive.mirror_cmd
