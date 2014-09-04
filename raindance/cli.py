@@ -80,10 +80,6 @@ def mirror(parser):
         spec = soft, version = spec.split('/')
         return spec
 
-    parser.add_argument('-u', '--url', action='store',
-                        help="url for index root",
-                        default=s3_url(default_bucket))
-
     parser.add_argument('-a', '--arch', action='store',
                         help="architecture",
                         default='amd64')
