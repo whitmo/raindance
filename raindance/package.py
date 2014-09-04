@@ -3,6 +3,8 @@ from path import path
 import logging
 import requests
 import subprocess
+import hashlib
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +35,10 @@ class PackageArchive(object):
         manifest = res.json()
         return manifest
 
-    def save_arch_manifest(self, software, version, archdir, arch):
+    def save_arch_manifest(self, software, version, verdir, arch):
         afname = '{}.json'.format(arch)
-        archurl = path(self.root_url) / software / version / 'arch' / afname
-        archfile = archdir / afname
+        archurl = path(self.root_url) / software / version / afname
+        archfile = verdir / afname
         res = self.http.get(str(archurl))
         if not res.ok():
             raise RuntimeError('Request for %s failed: %s',  archurl, res)
@@ -62,12 +64,12 @@ class PackageArchive(object):
             )
         return reldir, pkgdir, verdir
 
-    def save_job_metadata(self, jobdir, filename, software, version):
-        url = path(self.root_url) / software / version / 'jobs' / filename
+    def save_job_metadata(self, verdir, filename, software, version):
+        url = path(self.root_url) / software / version / 'jobs.tgz'
         res = self.http.get(url)
         if not res.ok():
             raise RuntimeError('Request for %s failed: %s', url, res)
-        newfile = jobdir / filename
+        newfile = verdir / filename
         newfile.write_bytes(res.content)
         return newfile
 
@@ -106,14 +108,15 @@ class PackageArchive(object):
         for version, arch in releases:
             dirs = self.release_template_paths(targetdir, software, version)
             [d.makedirs_p() for d in dirs]
-            reldir, pkgdir, verdir, jobdir, archdir = dirs
+            reldir, pkgdir, verdir, = dirs
             archfile, archdata = self.save_arch_manifest(software, version,
-                                                         archdir, arch)
+                                                         verdir, arch)
             yield archfile
 
             # could be concurrent
             for job in archdata['jobs']:
-                yield self.save_job_metadata(jobdir, job['metadata'], software, version)
+                yield self.save_job_metadata(verdir, job['metadata'],
+                                             software, version)
                 for package in self.save_packages(pkgdir, job['packages']):
                     yield package
 
