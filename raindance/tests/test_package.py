@@ -59,7 +59,6 @@ class TestPackageArchive(unittest.TestCase):
             archd = hm.get().text = "ARCH DESC"
             jobd = hm.get().content = b"IM A FILE"
             dj = dict(jobs=[dict(name='dummyjob',
-                                 metadata='dummyjob.tgz',
                                  packages=(dict(name='dp',
                                                 sha1='6b02ba72f6d0285a65166048b2e4522d7c126f7f',
                                                 filename='dp-1234.tgz'),)
@@ -70,10 +69,13 @@ class TestPackageArchive(unittest.TestCase):
             res1 = sorted(outdir.walk())
             assert set(report) <= set(res1)
             result = [x.replace(outdir, '.') for x in res1]
+
+            # structure
+            # {software} / {version} / {version artifact}
+            # {software} / packages  / {package version}
             assert result == [u'./dummy',
-                    u'./dummy/1234',
-                    u'./dummy/1234/',
-                    u'./dummy/1234/amd64.json',
-                    u'./dummy/1234/jobs.tgz',
-                    u'./dummy/packages',
-                    u'./dummy/packages/dp-1234.tgz']
+                              u'./dummy/1234',
+                              u'./dummy/1234/amd64.json',
+                              u'./dummy/1234/jobs.tgz',
+                              u'./dummy/packages',
+                              u'./dummy/packages/dp-1234.tgz']
