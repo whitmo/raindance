@@ -62,10 +62,41 @@ def prep_export(parser):
 
 
 @cli.command('raindance.pipeline:update_release_manifest')
-def update_release_manifest(parser):
+def update_manifest(parser):
+    """Create and upload a manifest for the current archive"""
     parser.add_argument('-b', '--bucket', action='store',
                         help="bucket for index",
                         default=default_bucket)
+
+
+@cli.command('raindance.package:mirror_pa')
+def mirror(parser):
+    """
+    Download a mirror of a section of package index
+    """
+    def parse_spec(spec):
+        if spec.find('/') == -1:
+            return (spec, None)
+        spec = soft, version = spec.split('/')
+        return spec
+
+    parser.add_argument('-u', '--url', action='store',
+                        help="url for index root",
+                        default=s3_url)
+
+    parser.add_argument('-a', '--arch', action='store',
+                        help="architecture",
+                        default='amd64')
+
+    parser.add_argument('-s', '--spec',
+                        help="{software}/{version} to mirror",
+                        default='cf',
+                        type=parse_spec)  # @@ add latest default
+
+    parser.add_argument("mirror_dir",
+                        help="where to output dir",
+                        type=str)
+
 
 main = cli.run
 
