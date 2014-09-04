@@ -102,6 +102,10 @@
           chdir={{workdir}}/out
           executable=/bin/bash"
 
+- name: update manifest
+  shell: "{{bp}} rd update-manifest
+          executable=/bin/bash"
+
 - name: clear out
   sudo: true
   command: "rm -rf {{workdir}}/out
