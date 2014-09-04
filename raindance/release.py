@@ -18,17 +18,6 @@ class Job(path.path):
     monit = filepath('monit')
     templates = filepath('templates')
 
-    @property
-    def erb_vars(self):
-        files = (self / 'templates').files()
-        for tmplt in files:
-            name = str(tmplt.basename())
-            text = tmplt.text()
-            match_iter = self.match_erb.finditer(text)
-            out = [x.groups()[0].strip() for x in match_iter]
-            if len(out):
-                yield name, out
-
 
 class Release(path.path):
     job_ctor = Job
@@ -39,9 +28,3 @@ class Release(path.path):
     @property
     def joblist(self):
         return (self.job_ctor(x) for x in self.jobs.dirs())
-
-    def query_job(self, job):
-        job_p = self.jobs / job
-        if not job_p.exists():
-            return None
-        return self.job_ctor(job_p.abspath())
