@@ -67,16 +67,16 @@ class PackageArchive(object):
         assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
 
     @staticmethod
-    def wget(self, url, outfile):
+    def wget(url, outfile):
         retry = True
         while retry:
-            self.log.info('Downloading %s to %s' % (url, outfile))
+            logger.info('Downloading %s to %s' % (url, outfile))
             try:
-                cmd = ['wget', '-t0', '-c', '-nv', url, '-O', outfile]
+                cmd = ['wget', '-t0', '-c', '-nv', str(url), '-O', outfile]
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError as e:
                 if e.returncode == 4:  # always retry network errors
-                    self.log.warn('Network error, retrying download: %s', url)
+                    logger.warn('Network error, retrying download: %s', url)
                     retry = True
                 else:
                     raise
