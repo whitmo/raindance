@@ -83,21 +83,32 @@
   sudo: true
   file: path={{workdir}}/packages.tar.gz owner=ubuntu group=ubuntu
 
-- name: clear out
-  sudo: true
-  command: "rm -rf {{workdir}}/out
-            removes={{workdir}}/out/artefacts"
+- name: fix ownership
+  file: path={{workdir}}/packages state=directory owner=ubuntu group=ubuntu
 
-- name: process export
-  shell: "{{bp}} rd -p /opt/cf-release pack-jobs --workdir={{workdir}}/out {{workdir}}/packages.tar.gz
+- name: unpack compiled packages
+  shell: tar -C {{workdir}}/packages -xzf {{workdir}}/packages.tar.gz
+
+- name: reprocess export
+  shell: "{{bp}} rd -p /opt/cf-release prep-export
+          --outdir={{workdir}}/out {{workdir}}/packages
           executable=/bin/bash"
 
 - name: upload jobs to s3
   shell: "{{bp}} s3-paraput
-          --content-type=application/x-tar
           --grant=public-read
-          --prefix=cf-{{rel}}/amd64
-          --bucket=cf-compiled-packages
+          --bucket=cf-packages
           ./
-          chdir={{workdir}}/out/artefacts
+          chdir={{workdir}}/out
           executable=/bin/bash"
+
+- name: clear out
+  sudo: true
+  command: "rm -rf {{workdir}}/out
+            removes={{workdir}}/out/packages"
+
+- fail: msg='born to stop'
+
+- name: shut down
+  sudo: true
+  command: poweroff
