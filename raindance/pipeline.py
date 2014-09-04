@@ -110,11 +110,10 @@ class PrepExport(object):
 
     verify_file = staticmethod(PackageArchive.verify_file)
 
-    def verified_pkg_list(self, fingerprint):
+    def verified_pkg_list(self):
         for pkg, (sha1, bsid) in self.export_data:
             blob = self.blobs / bsid
             self.verify_file(blob, sha1)
-            fingerprint.update(sha1)
             new_name = '%s-%s.tgz' % (pkg, sha1)
             dest = self.pkgdir / new_name
             yield pkg, sha1, dest, blob
@@ -142,14 +141,12 @@ class PrepExport(object):
     def do_prep(self):
         [d.mkdir() for d in self.dir_template]
 
-        fingerprint = hashlib.sha1()
-
         jobdata = [(job, job.packages) for job in self.release.joblist]
 
         jobsfile = self.create_jobs_tgz()
-        fingerprint.update(jobsfile.read_hexhash('sha1'))
+        jobs_sha1 = jobsfile.read_hexhash('sha1')
 
-        pkglist = list(self.verified_pkg_list(fingerprint))
+        pkglist = list(self.verified_pkg_list())
 
         for _, _, dest, blob in pkglist:
             blob.copy(dest)
@@ -158,14 +155,13 @@ class PrepExport(object):
                    for pkg, sha1, dest, _ in pkglist}
 
         amd = self.arch_manifest_data(jobdata, pkg_map)
-        fpval = fingerprint.hexdigest()
+        arch_data = dict(jobs=list(amd),
+                         jobs_sha1=jobs_sha1,
+                         commit=self.commit_hash)
 
-        arch_txt = json.dumps(dict(jobs=list(amd),
-                                   fingerprint=fpval),
-                                   indent=2)
+        arch_txt = json.dumps(arch_data, indent=2)
 
         self.archfile.write_text(arch_txt)
-        self.release_sha1.write_text(self.commit_hash)
         return self
 
     @classmethod

@@ -104,8 +104,10 @@ class PackageArchive(object):
 
             # could be concurrent
             for job in archdata['jobs']:
-                yield self.save_job_metadata(verdir, software, version)
-                for package in self.save_packages(pkgdir, job['packages']):
+                jobmd = self.save_job_metadata(verdir, software, version)
+                assert jobmd.read_hexhash('sha1') == archdata['jobs_sha1']
+                yield
+                for package in self.save_packages(software, pkgdir, job['packages']):
                     yield package
 
     def save_job_metadata(self, verdir, software, version):
