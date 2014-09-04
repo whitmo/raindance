@@ -131,12 +131,11 @@ class PackageArchive(object):
     @classmethod
     def mirror_cmd(cls, ctx, pargs):
         targetdir = pargs.mirror_dir
-        root_url = pargs.url
+        root_url = pargs.index
         software, version = pargs.spec
         arch = pargs.arch
 
         pa = cls(root_url, version, arch)
-
 
         targetdir.makedirs_p()
         files = pa.mirror_package_archive(targetdir, software)
