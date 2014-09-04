@@ -49,7 +49,7 @@ class TestPackageArchive(unittest.TestCase):
             from raindance.package import PackageArchive
 
             def wget_se(url, outfile):
-                assert url == path(u'http://url/packages/dp-1234.tgz')
+                assert url == path(u'http://url/dummy/packages/dp-1234.tgz')
                 assert outfile.endswith('out/dummy/packages/dp-1234.tgz')
                 self.fakepkg.copy(outfile)
                 return outfile

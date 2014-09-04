@@ -84,10 +84,10 @@ class PackageArchive(object):
                 retry = False
         return outfile
 
-    def save_packages(self, pkgdir, packages):
+    def save_packages(self, software, pkgdir, packages):
         for pkg in packages:
             outpath = pkgdir / pkg['filename']
-            pkg_url = path(self.root_url) / 'packages' / pkg['filename']
+            pkg_url = path(self.root_url) / software / 'packages' / pkg['filename']
             outfile = self.wget(pkg_url, outpath)
             assert outfile.exists()
             self.verify_file(outfile, pkg['sha1'])
