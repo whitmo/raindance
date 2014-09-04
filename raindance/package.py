@@ -3,8 +3,7 @@ from path import path
 import logging
 import requests
 import subprocess
-import hashlib
-
+from pprint import pformat
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +15,9 @@ class PackageArchive(object):
 
     log = logger
 
-    def __init__(self, root_url, software=None, version=None, arch=None):
+    def __init__(self, root_url, version=None, arch=None):
         #@@ add support for version range
         self.root_url = root_url
-        self.software = software
         self.version = version
         self.arch = arch
 
@@ -119,17 +117,28 @@ class PackageArchive(object):
         newfile.write_bytes(res.content)
         return newfile
 
-    @classmethod
-    def mirror_package_archive(cls, targetdir, root_url, software='cf',
-                               version=None, arch='amd64'):
-
-        pa = cls(root_url, software, version, arch)
-        manifest = pa.grab_manifest()
+    def mirror_package_archive(self, targetdir, software):
+        manifest = self.grab_manifest()
         all_releases = manifest['releases']
 
         if software is None:
             raise NotImplementedError("No support for entire archive download")
 
-        releases = pa.match_versions(all_releases[software])
-        genpa = pa.build_mirror_section(targetdir, software, releases)
+        releases = self.match_versions(all_releases[software])
+        genpa = self.build_mirror_section(targetdir, software, releases)
         return [x for x in genpa]
+
+    @classmethod
+    def mirror_cmd(cls, ctx, pargs):
+        targetdir = pargs.mirror_dir
+        root_url = pargs.url
+        software, version = pargs.spec
+        arch = pargs.arch
+
+        pa = cls(root_url, version, arch)
+        files = pa.mirror_package_archive(targetdir, software)
+        pa.log.debug(pformat(files))
+        return 0
+
+
+mirror_pa = PackageArchive.mirror_package_archive
