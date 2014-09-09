@@ -131,6 +131,41 @@ class PackageArchive(object):
         genpa = self.build_mirror_section(targetdir, software, releases)
         return [x for x in genpa]
 
+    def tarextract(self, tarball, outdir):
+        if not outdir.exists():
+            outdir.makedirs(mode=0755)
+            with outdir:
+                subprocess.check_call(['tar', '-xzf', tarball])
+        return outdir
+
+    def setup_job(self, jobname, workdir, pkgdir, releasedir, arch='amd64'):
+        jobm = self.save_job_metadata(releasedir, self.software, self.version)
+        archfile, archdata = self.save_arch_manifest(self.software,
+                                                     self.version,
+                                                     workdir, arch)
+        jobsha = archdata['jobs_sha1']
+        self.verify_file(jobm, jobsha)
+
+        jobsdata = dict((x['name'], x['packages']) for x in archdata['jobs'])
+
+        packages = jobsdata.get(jobname, False)
+        assert packages, "Job name %s not in %s" % (jobname, jobsdata)
+
+        for package in packages:
+            name = package['name']
+            filename = package['filename']
+            url = path(self.root_url) / self.software / 'packages' / filename
+
+            pkgfile = pkgdir / filename
+            if not pkgfile.exists():
+                pkgfile = self.wget(url, pkgfile)
+                self.verify_file(package['sha1'], pkgfile)
+
+            #@@ symlink if exists
+            pkgdir = releasedir / self.version / 'packages' / name
+            pkgdir = self.tarextract(pkgfile, pkgdir)
+            yield pkgdir
+
     @classmethod
     def mirror_cmd(cls, ctx, pargs):
         targetdir = pargs.mirror_dir
