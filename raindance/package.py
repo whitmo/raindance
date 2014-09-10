@@ -111,12 +111,13 @@ class PackageArchive(object):
                 for package in self.save_packages(software, pkgdir, job['packages']):
                     yield package
 
-    def save_job_metadata(self, verdir, software, version):
+    def save_job_metadata(self, targetdir, software, version):
         url = path(self.root_url) / software / version / 'jobs.tgz'
         res = self.http.get(url)
         if not res.ok:
             raise RuntimeError('Request for %s failed: %s', url, res)
-        newfile = verdir / "jobs.tgz"
+        targetdir.makedirs_p()
+        newfile = targetdir / "jobs.tgz"
         newfile.write_bytes(res.content)
         return newfile
 
@@ -154,12 +155,13 @@ class PackageArchive(object):
         for package in packages:
             name = package['name']
             filename = package['filename']
+
             url = path(self.root_url) / self.software / 'packages' / filename
 
             pkgfile = pkgdir / filename
             if not pkgfile.exists():
                 pkgfile = self.wget(url, pkgfile)
-                self.verify_file(package['sha1'], pkgfile)
+                self.verify_file(pkgfile, package['sha1'])
 
             #@@ symlink if exists
             pkgdir = releasedir / self.version / 'packages' / name

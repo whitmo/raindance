@@ -1,0 +1,37 @@
+{
+  "commit": "9364d68b",
+  "jobs": [
+    {
+      "packages": [],
+      "name": "dummy"
+    },
+    {
+      "packages": [],
+      "name": "dummy_fail_eventually"
+    },
+    {
+      "packages": [],
+      "name": "dummy_fail_immediate"
+    },
+    {
+      "packages": [],
+      "name": "dummy_with_properties"
+    },
+    {
+      "packages": [],
+      "name": "dummy_with_bad_package",
+      "error": true
+    },
+    {
+      "packages": [
+        {
+          "sha1": "6b02ba72f6d0285a65166048b2e4522d7c126f7f",
+          "name": "dummy_package",
+          "filename": "dummy_package-6b02ba72f6d0285a65166048b2e4522d7c126f7f.tgz"
+        }
+      ],
+      "name": "dummy_with_package"
+    }
+  ],
+  "jobs_sha1": "26bd579c601e08eae3b2c6cf1d4e4efc989634c0"
+}
