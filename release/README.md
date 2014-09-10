@@ -23,9 +23,15 @@ We'll need to launch bosh-lite into ec2.
     source ./var.sh
     ```
 
-From this folder in the raindance repository:
+ 1. Install the requirements:
 
- `./run-aws.sh {release version}`
+    ```
+    pip install -r requirements.txt
+    ```
+
+ 2. From this folder in the raindance repository:
+
+    `./run-aws.sh {release version}`
 
 
 ## What it does

@@ -24,7 +24,9 @@ setup(name='raindance',
           'path.py',
           'pyyaml',
           'subparse',
-          'clint'
+          'clint',
+          'requests',
+          'boto',
       ],
 
       entry_points="""

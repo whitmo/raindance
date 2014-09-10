@@ -13,3 +13,4 @@
 *~
 /release/inventory.ini
 /release/vars/run-vars.yml
+.tox
