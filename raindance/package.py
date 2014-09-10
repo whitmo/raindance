@@ -5,6 +5,7 @@ import logging
 import requests
 import subprocess
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -144,6 +145,7 @@ class PackageArchive(object):
         archfile, archdata = self.save_arch_manifest(self.software,
                                                      self.version,
                                                      workdir, arch)
+
         jobsha = archdata['jobs_sha1']
         self.verify_file(jobm, jobsha)
 
