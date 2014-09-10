@@ -16,7 +16,7 @@ aaki: ${AWS_ACCESS_KEY}
 asak: ${AWS_SECRET_ACCESS_KEY}
 EOF
 
-CMD="ansible-playbook -vvvv -i ./inventory.ini  ./aws.yml"
+CMD="ansible-playbook -vv -i ./inventory.ini  ./aws.yml"
 
 echo $CMD
 $CMD
