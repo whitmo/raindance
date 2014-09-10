@@ -36,9 +36,13 @@
 - include: cf-submodules.yml
   when: cf_checkout.changed
 
-- name: bosh config
+- name: install bosh cli
   sudo: true
-  file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
+  gem: name=bosh_cli state=latest
+
+# - name: bosh config
+#   sudo: true
+#   file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
 
 - name: target bosh locally
   shell: "{{bp}} bosh target localhost
