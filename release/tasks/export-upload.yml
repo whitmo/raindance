@@ -26,6 +26,7 @@
     - unzip
     - python-virtualenv
     - python-dev
+    - git
 
 - debug: msg="Let's Export the packages"
 
