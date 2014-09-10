@@ -12,14 +12,14 @@ class PackageArchive(object):
     """
     Represents fs representation of a package archive
     """
-
     log = logger
 
-    def __init__(self, root_url, version=None, arch=None):
+    def __init__(self, root_url, software=None, version=None, arch=None):
         #@@ add support for version range
         self.root_url = root_url
         self.version = version
         self.arch = arch
+        self.software = software
 
     @reify
     def http(self):
