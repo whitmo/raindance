@@ -1,4 +1,4 @@
 ---
-stemcell_uri: https://bosh-jenkins-artifacts.s3.amazonaws.com/bosh-stemcell/warden/bosh-stemcell-3-warden-boshlite-ubuntu-trusty-go_agent.tgz
+stemcell_uri: https://s3.amazonaws.com/bosh-jenkins-artifacts/bosh-stemcell/warden/bosh-stemcell-27-warden-boshlite-ubuntu-trusty-go_agent.tgz
 bp: source /home/ubuntu/.boilerplate-src.sh &&
 workdir: /opt/packages

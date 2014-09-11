@@ -49,14 +49,14 @@
          executable=/bin/bash"
 
 - name: check stemcell count
-  sudo: true
-  shell: ls /opt/warden/stemcells | wc -w
-  register: stemcell_count
+  shell: "{{bp}} bosh stemcells executable=/bin/bash"
+  register: stemcells
+  ignore_errors: true
 
 - name: upload stemcell to bosh
   shell: "{{bp}} bosh upload stemcell {{stemcell_uri}}
          executable=/bin/bash"
-  when: stemcell_count.rc == 0 and stemcell_count.stdout == "0"
+  when: stemcells.rc == 1
   async: 6000
   poll: 30
 
