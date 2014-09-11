@@ -72,8 +72,12 @@
 - set_fact:
     do_upload_release: "{{uploaded_release_cnt | int < 2}}"
 
+- name: set perms
+  sudo: true
+  file: path=/var/vcap/data/tmp owner=ubuntu group=ubuntu
+
 - name: upload release to bosh
-  shell: "{{bp}} bosh upload release releases/cf-{{rel}}.yml
+  shell: "{{bp}} TMPDIR=/var/vcap/data/tmp bosh upload release releases/cf-{{rel}}.yml
          chdir=/opt/cf-release
          executable=/bin/bash"
   when: do_upload_release | bool
@@ -89,7 +93,7 @@
   when: not already_uploaded | bool
 
 - name: spiff up manifest
-  shell: "{{bp}} ./scripts/make_manifest_spiff
+  shell: "{{bp}} ./bin/make_manifest_spiff
          chdir=/opt/boshlite
          executable=/bin/bash"
 
