@@ -4,6 +4,7 @@ from pprint import pformat
 import logging
 import requests
 import subprocess
+import tarfile
 
 
 logger = logging.getLogger(__name__)
