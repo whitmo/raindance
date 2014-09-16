@@ -37,7 +37,6 @@
   when: cf_checkout.changed
 
 - name: install bosh cli
-  sudo: true
   gem: name=bosh_cli state=latest
 
 # - name: bosh config
