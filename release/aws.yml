@@ -62,11 +62,14 @@
       key_name: "boshlite-cf-export"
       group: "{{ security_group }}"
       instance_type: "{{ instance_type }}"
+      # "{{ image }}"
+      # ami-3a04df52
+      # ami-ee529e86
       image: "{{ image }}"
       wait: true
       state: present
       region: "{{ region }}"
-      id: "boshlite-cf-export-f"
+      id: "boshlite-cf-export-h"
       volumes:
         - device_name: /dev/sda1
           volume_size: 50
