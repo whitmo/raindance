@@ -159,6 +159,14 @@ class PackageArchive(object):
 
         packages = jobsdata.get(jobname, False)
         assert packages, "Job name %s not in %s" % (jobname, jobsdata)
+        jobr = releasedir / 'jobs'
+        jobr.makedirs_p()
+        jobsdir.makedirs_p()
+
+        with jobr, tarfile.open(jobm) as tf:
+            tf.extractall()
+
+        (jobr / jobname).copytree(jobsdir / jobname)
 
         for package in packages:
             name = package['name']
