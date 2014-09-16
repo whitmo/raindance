@@ -160,7 +160,8 @@ class PackageArchive(object):
 
         packages = jobsdata.get(jobname, False)
         assert packages, "Job name %s not in %s" % (jobname, jobsdata)
-        jobr = releasedir / 'jobs'
+        jobr = releasedir / self.version / 'jobs'
+
         jobr.makedirs_p()
         jobsdir.makedirs_p()
 
@@ -168,6 +169,8 @@ class PackageArchive(object):
             tf.extractall()
 
         (jobr / jobname).copytree(jobsdir / jobname)
+        self.log.info(jobr / jobname)
+        self.log.info(jobsdir / jobname)
 
         for package in packages:
             name = package['name']
