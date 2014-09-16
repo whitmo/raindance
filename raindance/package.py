@@ -140,13 +140,17 @@ class PackageArchive(object):
                 subprocess.check_call(['tar', '-xzf', tarball])
         return outdir
 
-    def setup_job(self, jobname, workdir, pkgdir, releasedir, jobsdir, arch='amd64'):
+    def setup_job(self, jobname, workdir, pkgdir,
+                  releasedir, jobsdir, arch='amd64'):
+        """
+        Retrieves job specifications, architecture metadata, and
+        packages. Arranges and places these artifacts in anticipation of
+        deployment.
+        """
         jobm = self.save_job_metadata(releasedir, self.software, self.version)
         archfile, archdata = self.save_arch_manifest(self.software,
                                                      self.version,
                                                      workdir, arch)
-
-        # /var/vcap/{jobname}
 
         jobsha = archdata['jobs_sha1']
         self.verify_file(jobm, jobsha)
