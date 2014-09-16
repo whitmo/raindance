@@ -1,4 +1,3 @@
-from mock import Mock
 from mock import patch
 from path import path
 import contextlib
@@ -71,6 +70,7 @@ class TestPackageArchive(unittest.TestCase):
             pkgdir = next(gen)
             assert pkgdir.exists()
             assert pkgdir.endswith('release/100/packages/dummy_package')
+            assert (pkgdir.parent.parent / 'jobs').exists()
 
     def patch_set(self, *methods):
         return contextlib.nested(*[patch(self.pam(x)) for x in methods])
