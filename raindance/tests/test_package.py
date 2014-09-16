@@ -65,7 +65,8 @@ class TestPackageArchive(unittest.TestCase):
             gen = pa.setup_job('dummy_with_package',
                                out / 'work',
                                out / 'pkgs',
-                               out / 'release')
+                               out / 'release',
+                               out / 'var/vcap')
 
             pkgdir = next(gen)
             assert pkgdir.exists()
