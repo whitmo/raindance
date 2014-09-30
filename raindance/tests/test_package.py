@@ -5,7 +5,6 @@ import contextlib
 import requests
 import unittest
 import tempfile
-import json
 
 
 class TestPackageArchive(unittest.TestCase):
@@ -54,23 +53,17 @@ class TestPackageArchive(unittest.TestCase):
                 PackageArchive('http://url').mirror_package_archive('.', None)
 
     def test_setup_job(self):
-        ad = json.loads(self.archdata.text())
-
         out = self.outdir
-        with self.patch_set('save_arch_manifest', 'wget', 'http') as (am, wm, hm):
-            am.return_value = (self.archdata, ad)
-            wm.return_value = self.dummy_pkg
-            pa = self.makeone()
-            hm.get().content = self.jobtgz.bytes()
-            gen = pa.setup_job('dummy_with_package',
-                               out / 'work',
-                               out / 'pkgs',
-                               out / 'release',
-                               out / 'var/vcap')
+        pa = self.makeone()
+        gen = pa.setup_job(self.here / 'data', out, 'dummy', '100', 'amd64', 'dummy_with_package')
 
-            pkgdir = next(gen)
-            assert pkgdir.exists()
-            assert pkgdir.endswith('release/100/packages/dummy_package')
+        self.assertEqual(list(gen), [
+            path('jobs/dummy_with_package'),
+            path('packages/dummy_package'),
+        ])
+        assert (out / 'jobs/dummy_with_package/spec').exists()
+        assert not (out / 'jobs/dummy_with_properties/spec').exists()
+        assert (out / 'packages/dummy_package/some_dummy_package').exists()
 
     def patch_set(self, *methods):
         return contextlib.nested(*[patch(self.pam(x)) for x in methods])
@@ -80,6 +73,7 @@ class TestPackageArchive(unittest.TestCase):
 
         with self.patch_set('grab_manifest', 'http', 'wget') as (gm, hm, wm):
             from raindance.package import PackageArchive
+
             def wget_se(url, outfile):
                 assert url == path(u'http://url/dummy/packages/dp-1234.tgz')
                 assert outfile.endswith('out/dummy/packages/dp-1234.tgz')
@@ -88,8 +82,8 @@ class TestPackageArchive(unittest.TestCase):
 
             wm.side_effect = wget_se
             gm.return_value = dict(releases=dict(dummy=(('1234', 'amd64'),)))
-            archd = hm.get().text = "ARCH DESC"
-            jobd = hm.get().content = b"IM A FILE"
+            hm.get().text = "ARCH DESC"
+            hm.get().content = b"IM A FILE"
             pkg = dict(name='dp',
                        sha1='6b02ba72f6d0285a65166048b2e4522d7c126f7f',
                        filename='dp-1234.tgz')
@@ -99,7 +93,7 @@ class TestPackageArchive(unittest.TestCase):
             hm.get().json.return_value = dj
 
             report = PackageArchive('http://url')\
-              .mirror_package_archive(outdir,  'dummy')
+                .mirror_package_archive(outdir,  'dummy')
             res1 = sorted(outdir.walk())
             assert set(report) <= set(res1)
             result = [x.replace(outdir, '.') for x in res1]
@@ -113,3 +107,21 @@ class TestPackageArchive(unittest.TestCase):
                               u'./dummy/1234/jobs.tgz',
                               u'./dummy/packages',
                               u'./dummy/packages/dp-1234.tgz']
+
+    def test_mirror_section_partial(self):
+        with self.patch_set('release_template_paths',
+                            'save_arch_manifest',
+                            'save_job_metadata',
+                            'verify_file',
+                            'save_packages') as (rtp, sam, sjm, vf, sp):
+            _, pkg, vdr = rtp.return_value = [Mock() for i in range(3)]
+            vdr.__div__ = Mock()
+            sam.return_value = ['archfile', {'jobs': [
+                {'name': 'job1', 'packages': ['p1', 'p2']},
+                {'name': 'job2', 'packages': ['p3', 'p4']},
+                {'name': 'job3', 'packages': ['p5', 'p6']},
+            ], 'jobs_sha1': 'sha'}]
+            pa = self.makeone()
+            list(pa.build_mirror_section(
+                'targetdir', 'software', [('version', 'arch')], 'job2'))
+            sp.assert_called_once_with('software', pkg, ['p3', 'p4'])

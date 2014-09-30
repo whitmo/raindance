@@ -4,7 +4,7 @@ from pprint import pformat
 import logging
 import requests
 import subprocess
-import tarfile
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class PackageArchive(object):
 
     @staticmethod
     def verify_file(path, sha1):
-        assert path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
+        return path.read_hexhash('sha1') == sha1, "sha mismatch: %s" % path
 
     @staticmethod
     def wget(url, outfile):
@@ -90,12 +90,17 @@ class PackageArchive(object):
         for pkg in packages:
             outpath = pkgdir / pkg['filename']
             pkg_url = path(self.root_url) / software / 'packages' / pkg['filename']
-            outfile = self.wget(pkg_url, outpath)
-            assert outfile.exists()
-            self.verify_file(outfile, pkg['sha1'])
-            yield outfile
+            if not outpath.exists() or not self.verify_file(outpath, pkg['sha1']):
+                self.wget(pkg_url, outpath)
+            assert self.verify_file(outpath, pkg['sha1'])
+            yield outpath
 
-    def build_mirror_section(self, targetdir, software, releases):
+    def build_mirror_section(self, targetdir, software, releases, jobs=None):
+        """
+        Build a local mirror of a section of a remote package archive.
+
+        Returns a generator that (lazily) fetches each file into the mirror.
+        """
         for version, arch in releases:
             dirs = self.release_template_paths(targetdir, software, version)
             [d.makedirs_p() for d in dirs]
@@ -104,14 +109,21 @@ class PackageArchive(object):
                                                          verdir, arch)
             yield archfile
 
-            # could be concurrent
-            for job in archdata['jobs']:
-                jobmd = self.save_job_metadata(verdir, software, version)
-                assert jobmd.read_hexhash('sha1') == archdata['jobs_sha1']
-                yield jobmd
+            jobmd = verdir / 'jobs.tgz'
+            if not jobmd.exists() or not self.verify_file(jobmd, archdata['jobs_sha1']):
+                self.save_job_metadata(verdir, software, version)
+            assert self.verify_file(jobmd, archdata['jobs_sha1'])
+            yield jobmd
 
-                for package in self.save_packages(software, pkgdir, job['packages']):
-                    yield package
+            if jobs is None:
+                jobs = [job['name'] for job in archdata['jobs']]
+            packages = [package for job in archdata['jobs']
+                        for package in job['packages']
+                        if job['name'] in jobs]
+
+            # could be concurrent
+            for package in self.save_packages(software, pkgdir, packages):
+                yield package
 
     def save_job_metadata(self, targetdir, software, version):
         url = path(self.root_url) / software / version / 'jobs.tgz'
@@ -134,56 +146,33 @@ class PackageArchive(object):
         genpa = self.build_mirror_section(targetdir, software, releases)
         return [x for x in genpa]
 
-    def tarextract(self, tarball, outdir):
-        if not outdir.exists():
-            outdir.makedirs(mode=0755)
-            with outdir:
-                subprocess.check_call(['tar', '-xzf', tarball])
-        return outdir
+    def tarextract(self, tarball, outdir, *args):
+        outdir.makedirs_p(mode=0755)
+        with outdir:
+            subprocess.check_call(['tar', '-xzf', tarball] + list(args))
 
-    def setup_job(self, jobname, workdir, pkgdir,
-                  releasedir, jobsdir, arch='amd64'):
+    def setup_job(self, mirror_root, target_path, software, version, arch, job_name):
         """
-        Retrieves job specifications, architecture metadata, and
-        packages. Arranges and places these artifacts in anticipation of
-        deployment.
+        Install a job from a local mirror to the target path.
+
+        Returns a generator that processes each folder extracted from the mirror.
         """
-        jobm = self.save_job_metadata(releasedir, self.software, self.version)
-        archfile, archdata = self.save_arch_manifest(self.software,
-                                                     self.version,
-                                                     workdir, arch)
+        archfile = mirror_root / software / version / '{}.json'.format(arch)
+        archdata = json.loads(archfile.text())
+        jobsdata = {x['name']: x['packages'] for x in archdata['jobs']}
+        packages = jobsdata.get(job_name, False)
+        assert packages, "Job %s not in %s" % (job_name, jobsdata)
 
-        jobsha = archdata['jobs_sha1']
-        self.verify_file(jobm, jobsha)
-
-        jobsdata = dict((x['name'], x['packages']) for x in archdata['jobs'])
-
-        packages = jobsdata.get(jobname, False)
-        assert packages, "Job name %s not in %s" % (jobname, jobsdata)
-        jobr = releasedir / 'jobs'
-        jobr.makedirs_p()
-        jobsdir.makedirs_p()
-
-        with jobr, tarfile.open(jobm) as tf:
-            tf.extractall()
-
-        (jobr / jobname).copytree(jobsdir / jobname)
+        jobs_file = mirror_root / software / version / 'jobs.tgz'
+        jobs_target = target_path / 'jobs'
+        self.tarextract(jobs_file, jobs_target, './{}'.format(job_name))
+        yield path('jobs') / job_name
 
         for package in packages:
-            name = package['name']
-            filename = package['filename']
-
-            url = path(self.root_url) / self.software / 'packages' / filename
-
-            pkgfile = pkgdir / filename
-            if not pkgfile.exists():
-                pkgfile = self.wget(url, pkgfile)
-                self.verify_file(pkgfile, package['sha1'])
-
-            #@@ symlink if exists
-            pkgdir = releasedir / self.version / 'packages' / name
-            pkgdir = self.tarextract(pkgfile, pkgdir)
-            yield pkgdir
+            package_file = mirror_root / software / 'packages' / package['filename']
+            package_target = target_path / 'packages' / package['name']
+            self.tarextract(package_file, package_target)
+            yield path('packages') / package['name']
 
     @classmethod
     def mirror_cmd(cls, ctx, pargs):
