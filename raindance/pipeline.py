@@ -38,6 +38,7 @@ class UpdateReleaseManifest(object):
         idxk = bucket.new_key('index.json')
         idxk.content_type = 'application/json'
         idxk.set_contents_from_string(outstring)
+        idxk.set_canned_acl('public-read')
         return 0
 
     @util.reify
