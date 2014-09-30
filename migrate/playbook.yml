@@ -1,0 +1,132 @@
+---
+- name: launch work box
+  hosts: local
+  gather_facts: false
+  vars_files:
+    - ./vars/run-vars.yml
+  vars:
+    keypair: juju
+    instance_type: m3.xlarge
+    security_group: cf-pipeline-boshlite
+    region: us-west-2
+    ami: ami-eb2566db
+    secdesc: For cf-juju package migration
+  tasks:
+
+  - name: check sec group
+    local_action:
+      module: ec2_group
+      name: "{{ security_group }}"
+      description: "{{ secdesc }}"
+      state: present
+      region: "{{ region }}"
+    register: sec_group
+    ignore_errors: true
+
+  - name: security group
+    local_action:
+      module: ec2_group
+      name: "{{ security_group }}"
+      description: "{{ secdesc }}"
+      region: "{{ region }}"
+      state: present
+      rules:
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 10.0.0.0/0
+      rules_egress:
+        - proto: all
+          from_port: all
+          to_port: all
+          cidr_ip: 10.0.0.0/0
+
+  - name: Create keypair
+    local_action:
+      module: ec2_key
+      name: "boshlite-cf-export"
+      region: "{{ region }}"
+      key_material: "{{ item }}"
+      state: present
+    with_file: "~/.juju/ssh/juju_id_rsa.pub"
+
+  - name: Launch boshlite instance
+    local_action:
+      module: ec2
+      key_name: "boshlite-cf-export"
+      group: "{{ security_group }}"
+      instance_type: "{{ instance_type }}"
+      image: "{{ami}}"
+      wait: true
+      state: present
+      region: "{{ region }}"
+      id: "boshlite-cf-export-h"
+      volumes:
+        - device_name: /dev/sda1
+          volume_size: 50
+          delete_on_termination: true
+    register: ec2
+
+  - name: Add bl instance to host group
+    local_action: add_host hostname={{ item.public_ip }} groupname=blbox
+    with_items: ec2.instances
+
+  - name: Wait for SSH to come up
+    local_action:
+      module: wait_for
+      host: "{{ item.public_dns_name }}"
+      port: 22
+      delay: 20
+      timeout: 960
+      state: started
+    with_items: ec2.instances
+    when: false
+
+- name: migrate
+  hosts: blbox
+  gather_facts: false
+  remote_user: ubuntu
+  vars_files:
+    - ./vars/run-vars.yml
+  vars:
+    workdir: /opt/packages
+  tasks:
+
+  - fail: msg="no aws access key -- {{aaki | len}}"
+    when: not aaki
+
+  - fail: msg="no aws secret key -- {{asak | len}}"
+    when: not asak
+
+  - name: Install the os deps
+    sudo: true
+    tags: repos
+    apt: pkg={{item}}
+         state=present
+         cache_valid_time="{{60*60*10}}"
+         update_cache=yes
+    with_items:
+      - python-virtualenv
+      - python-dev
+      - git
+
+  - name: install raindance
+    sudo: true
+    pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
+
+  - name: work dir
+    sudo: true
+    file: path={{workdir}} state=directory owner=ubuntu group=ubuntu
+
+  - name: boilerplate source
+    template: src=boilerplate.sh
+              dest=/home/ubuntu/.boilerplate-src.sh
+
+  - name: place boilerplate in bashrc
+    lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
+
+  - fail: msg='born to stop'
+
+  - name: shut down
+    sudo: true
+    command: poweroff
