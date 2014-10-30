@@ -37,11 +37,15 @@ class PackageArchive(object):
 
     def save_arch_manifest(self, software, version, verdir, arch):
         afname = '{}.json'.format(arch)
-        archurl = path(self.root_url) / software / version / afname
         archfile = verdir / afname
+        if archfile.exists():
+            return archfile, json.loads(archfile.text())
+
+        archurl = path(self.root_url) / software / version / afname
         res = self.http.get(str(archurl))
         if not res.ok:
             raise RuntimeError('Request for %s failed: %s',  archurl, res)
+
         archfile.write_text(res.text)
         return archfile, res.json()
 

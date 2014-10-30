@@ -1,5 +1,6 @@
 from mock import patch
 from mock import Mock
+from mock import call
 from path import path
 import contextlib
 import requests
@@ -20,7 +21,9 @@ class TestPackageArchive(unittest.TestCase):
 
     @property
     def outdir(self):
-        return path(tempfile.mkdtemp(prefix='rd-test-')) / 'out'
+        od = path(tempfile.mkdtemp(prefix='rd-test-')) / 'out'
+        od.makedirs_p()
+        return od
 
     def makeone(self, url='http://someurl', software="dummy", version='100'):
         from raindance.package import PackageArchive
@@ -45,6 +48,43 @@ class TestPackageArchive(unittest.TestCase):
                    spec=requests.Session) as http:
             marker = http.get().json()
             assert marker is pa.grab_manifest()
+
+    def test_save_arch_manifest(self):
+        pa = self.makeone()
+        with patch(self.pam('http'),
+                   spec=requests.Session) as http:
+            marker = http.get().json()
+            faux_txt = http.get().text = 'some text'
+            verdir = self.outdir
+            (outfile, outjson) = pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
+            assert outfile.text() == faux_txt
+            assert outjson is marker
+
+    def test_save_arch_manifest(self):
+        pa = self.makeone()
+        with patch(self.pam('http'),
+                   spec=requests.Session) as http:
+            marker = http.get().json()
+            faux_txt = http.get().text = '{}'
+            verdir = self.outdir
+            pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
+
+            (outfile, outjson) = pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
+            assert outfile.text() == faux_txt
+            assert outjson == {}
+
+            hcall = call('http://someurl/dummy/123/BeOS.json')
+            get_called = [x for x in http.get.call_args_list if x == hcall]
+            assert len(get_called) == 1
+
+    def test_save_arch_manifest_raises(self):
+        pa = self.makeone()
+        with patch(self.pam('http'),
+                   spec=requests.Session) as http:
+            verdir = self.outdir
+            http.get().ok = False
+            with self.assertRaises(RuntimeError):
+                (outfile, outjson) = pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
 
     def test_mirror_package_archive_no_software(self):
         with patch(self.pam('grab_manifest')):
