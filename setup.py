@@ -27,6 +27,7 @@ setup(name='raindance',
           'clint',
           'requests',
           'boto',
+          'futures'
       ],
 
       entry_points="""

@@ -1,11 +1,12 @@
 from .util import reify
+from functools import partial
+from futures import ProcessPoolExecutor
 from path import path
 from pprint import pformat
+import json
 import logging
 import requests
 import subprocess
-import json
-
 
 logger = logging.getLogger(__name__)
 
@@ -91,13 +92,11 @@ class PackageArchive(object):
         return outfile
 
     def save_packages(self, software, pkgdir, packages):
-        for pkg in packages:
-            outpath = pkgdir / pkg['filename']
-            pkg_url = path(self.root_url) / software / 'packages' / pkg['filename']
-            if not outpath.exists() or not self.verify_file(outpath, pkg['sha1']):
-                self.wget(pkg_url, outpath)
-            assert self.verify_file(outpath, pkg['sha1'])
-            yield outpath
+        fpkg = partial(fetch_pkg, self.root_url, software, pkgdir)
+        with ProcessPoolExecutor() as exe:
+            out = exe.map(fpkg, packages)
+            for result in out:
+                yield result
 
     def build_mirror_section(self, targetdir, software, releases, jobs=None):
         """
@@ -125,7 +124,6 @@ class PackageArchive(object):
                         for package in job['packages']
                         if job['name'] in jobs]
 
-            # could be concurrent
             for package in self.save_packages(software, pkgdir, packages):
                 yield package
 
@@ -194,3 +192,13 @@ class PackageArchive(object):
 
 
 mirror_pa = PackageArchive.mirror_cmd
+
+
+def fetch_pkg(root_url, software, pkgdir, pkg,
+              verify=PackageArchive.verify_file, wget=PackageArchive.wget):
+    outpath = pkgdir / pkg['filename']
+    pkg_url = path(root_url) / software / 'packages' / pkg['filename']
+    if not outpath.exists() or not verify(outpath, pkg['sha1']):
+        wget(pkg_url, outpath)
+    assert verify(outpath, pkg['sha1'])
+    return outpath
