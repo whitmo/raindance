@@ -18,7 +18,6 @@ class PackageArchive(object):
     log = logger
 
     def __init__(self, root_url, software=None, version=None, arch=None):
-        #@@ add support for version range
         self.root_url = root_url
         self.version = version
         self.arch = arch
@@ -55,9 +54,12 @@ class PackageArchive(object):
             spec = version, arch = version
             if not any((self.version, self.arch)):
                 yield spec
-
-            if self.version == version or self.arch == arch:
-                yield spec
+            elif self.version and self.arch:
+                if self.version == version and self.arch == arch:
+                    yield spec
+            else:
+                if self.version == version or self.arch == arch:
+                    yield spec
 
     @staticmethod
     def release_template_paths(outdir, software, version):
@@ -183,7 +185,7 @@ class PackageArchive(object):
         software, version = pargs.spec
         arch = pargs.arch
 
-        pa = cls(root_url, version, arch)
+        pa = cls(root_url, version=version, arch=arch)
 
         targetdir.makedirs_p()
         files = pa.mirror_package_archive(targetdir, software)
