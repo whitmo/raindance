@@ -4,7 +4,6 @@ from path import path
 from subparse import CLI
 import tempfile
 import logging
-import sys
 
 
 default_bucket = 'cf-packages'
