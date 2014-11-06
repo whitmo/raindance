@@ -1,7 +1,6 @@
 from . import util
 from .package import PackageArchive
 import boto
-import hashlib
 import json
 import logging
 import requests
