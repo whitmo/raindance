@@ -220,3 +220,67 @@ class TestPackageArchive(unittest.TestCase):
             assert out == '/tmp/out'
             assert cc.called
             assert cc.call_count == 2
+
+    def test_fetch_pkg(self):
+        from raindance.package import fetch_pkg
+        vm, wgm = (Mock(), Mock())
+        pkg = dict(filename='pkg', sha1='123abc')
+        op = fetch_pkg('root', 'dummy', path('out'),
+                       pkg, verify=vm, wget=wgm)
+
+        assert op == path(u'out/pkg')
+        assert all((wgm.called, wgm.call_count == 1))
+        assert all((vm.called, vm.call_count == 1))
+
+        assert wgm.call_args == call(path(u'root/dummy/packages/pkg'),
+                                     path(u'out/pkg'))
+
+    def test_mirror_cmd(self):
+        with self.patch_set('mirror_package_archive') as (mpa,):
+            from raindance.package import PackageArchive
+            ctx, pargs = Mock(), Mock()
+            pargs.spec = "wat", "1.0",
+            md = pargs.mirror_dir = path('/tmp/wat-x')
+            assert PackageArchive.mirror_cmd(ctx, pargs) == 0
+            assert mpa.called
+            assert mpa.call_args == call(md, 'wat')
+
+    def test_match_versions_v_and_arch(self):
+        from raindance.package import PackageArchive
+        pa = PackageArchive('./', 'wat', '1.0', 'somearch')
+        releases1 = [('1.0', 'somearch'),
+                     ('2.0', 'somearch'),
+                     ('1.0', 'notarch')]
+
+        out = list(pa.match_versions(releases1))
+        assert out == [('1.0', 'somearch')]
+
+    def test_match_versions_none_and_arch(self):
+        from raindance.package import PackageArchive
+        pa = PackageArchive('./', 'wat', None, 'somearch')
+        releases1 = [('1.0', 'somearch'),
+                     ('2.0', 'somearch'),
+                     ('1.0', 'notarch')]
+
+        out = list(pa.match_versions(releases1))
+        assert out == [('1.0', 'somearch'), ('2.0', 'somearch')]
+
+    def test_match_versions_v_and_none(self):
+        from raindance.package import PackageArchive
+        pa = PackageArchive('./', 'wat', '1.0', None)
+        releases1 = [('1.0', 'somearch'),
+                     ('2.0', 'somearch'),
+                     ('1.0', 'notarch')]
+
+        out = list(pa.match_versions(releases1))
+        assert out == [('1.0', 'somearch'), ('1.0', 'notarch')]
+
+    def test_match_versions_all(self):
+        from raindance.package import PackageArchive
+        pa = PackageArchive('./', 'wat', None, None)
+        releases1 = [('1.0', 'somearch'),
+                     ('2.0', 'somearch'),
+                     ('1.0', 'notarch')]
+
+        out = list(pa.match_versions(releases1))
+        assert out == releases1
