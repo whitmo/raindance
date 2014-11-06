@@ -176,3 +176,37 @@ class TestPackageArchive(unittest.TestCase):
             list(pa.build_mirror_section(
                 'targetdir', 'software', [('version', 'arch')], 'job2'))
             sp.assert_called_once_with('software', pkg, ['p3', 'p4'])
+
+    def test_wget_error(self):
+        with patch('subprocess.check_call') as cc:
+            from raindance.package import PackageArchive
+            cc.side_effect = ValueError("wat?")
+            with self.assertRaises(ValueError):
+                PackageArchive.wget('http://wat', '/tmp/out')
+
+    def test_wget(self):
+        with patch('subprocess.check_call') as cc:
+            from raindance.package import PackageArchive
+            out = PackageArchive.wget('http://wat', '/tmp/out')
+            assert out == '/tmp/out'
+            assert cc.called
+            assert cc.call_args == call(['wget', '-t0', '-c', '-nv',
+                                        'http://wat', '-O', '/tmp/out'])
+
+    def test_wget_net_error_retry(self):
+        with patch('subprocess.check_call') as cc:
+            from raindance.package import PackageArchive
+            import subprocess
+            retry = dict(yes=True)
+
+            def oneerror(cmd):
+                if retry['yes'] is True:
+                    retry['yes'] = False
+                    raise subprocess.CalledProcessError(4, cmd)
+
+            cc.side_effect = oneerror
+
+            out = PackageArchive.wget('http://wat', '/tmp/out')
+            assert out == '/tmp/out'
+            assert cc.called
+            assert cc.call_count == 2
