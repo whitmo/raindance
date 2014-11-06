@@ -2,6 +2,7 @@ from mock import patch
 from mock import Mock
 from mock import call
 from path import path
+from futures import ProcessPoolExecutor
 import contextlib
 import requests
 import unittest
@@ -111,16 +112,9 @@ class TestPackageArchive(unittest.TestCase):
     def test_mirror_package_archive(self):
         outdir = self.outdir
 
-        with self.patch_set('grab_manifest', 'http', 'wget') as (gm, hm, wm):
-            from raindance.package import PackageArchive
+        with self.patch_set('grab_manifest', 'http') as (gm, hm):
+            from raindance.package import PackageArchive, fetch_pkg
 
-            def wget_se(url, outfile):
-                assert url == path(u'http://url/dummy/packages/dp-1234.tgz')
-                assert outfile.endswith('out/dummy/packages/dp-1234.tgz')
-                self.fakepkg.copy(outfile)
-                return outfile
-
-            wm.side_effect = wget_se
             gm.return_value = dict(releases=dict(dummy=(('1234', 'amd64'),)))
             hm.get().text = "ARCH DESC"
             hm.get().content = b"IM A FILE"
@@ -132,7 +126,24 @@ class TestPackageArchive(unittest.TestCase):
                       jobs_sha1='993fe02fd8f6f6fb36c9bb6a3a66e6a801297acc')
             hm.get().json.return_value = dj
 
-            report = PackageArchive('http://url')\
+            pexec = Mock(name='executor', spec=ProcessPoolExecutor)
+
+            pexec().__exit__ = lambda s, ev,et,tb: None
+            pexec().__enter__ = lambda s: pexec
+            mapm = pexec.map
+
+            def map_se(fpkg, pkglist):
+                od = outdir / 'dummy/packages'
+                assert fpkg.args == ('http://url', 'dummy', od)
+                assert fpkg.func is fetch_pkg
+                for pkg in pkglist:
+                    outpath = od / pkg['filename']
+                    self.fakepkg.copy(outpath)
+                    yield outpath
+
+            mapm.side_effect = map_se
+
+            report = PackageArchive('http://url', executor=pexec)\
                 .mirror_package_archive(outdir,  'dummy')
             res1 = sorted(outdir.walk())
             assert set(report) <= set(res1)

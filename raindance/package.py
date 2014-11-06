@@ -17,11 +17,13 @@ class PackageArchive(object):
     """
     log = logger
 
-    def __init__(self, root_url, software=None, version=None, arch=None):
+    def __init__(self, root_url, software=None, version=None,
+                 arch=None, executor=ProcessPoolExecutor):
         self.root_url = root_url
         self.version = version
         self.arch = arch
         self.software = software
+        self.executor = executor
 
     @reify
     def http(self):
@@ -95,7 +97,7 @@ class PackageArchive(object):
 
     def save_packages(self, software, pkgdir, packages):
         fpkg = partial(fetch_pkg, self.root_url, software, pkgdir)
-        with ProcessPoolExecutor() as exe:
+        with self.executor() as exe:
             out = exe.map(fpkg, packages)
             for result in out:
                 yield result
