@@ -178,12 +178,21 @@ class TestPackageArchive(unittest.TestCase):
                 'targetdir', 'software', [('version', 'arch')], 'job2'))
             sp.assert_called_once_with('software', pkg, ['p3', 'p4'])
 
-    def test_wget_error(self):
+    def test_wget_nonnet_subproc_error(self):
+        with patch('subprocess.check_call') as cc:
+            from raindance.package import PackageArchive
+            import subprocess
+            cc.side_effect = subprocess.CalledProcessError(1, 'wat?')
+            with self.assertRaises(subprocess.CalledProcessError):
+                PackageArchive.wget('http://wat', '/tmp/out')
+
+    def test_wget_general_exception(self):
         with patch('subprocess.check_call') as cc:
             from raindance.package import PackageArchive
             cc.side_effect = ValueError("wat?")
             with self.assertRaises(ValueError):
                 PackageArchive.wget('http://wat', '/tmp/out')
+
 
     def test_wget(self):
         with patch('subprocess.check_call') as cc:

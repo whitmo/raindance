@@ -91,6 +91,8 @@ class PackageArchive(object):
                     retry = True
                 else:
                     raise
+            except Exception:
+                raise
             else:
                 retry = False
         return outfile
