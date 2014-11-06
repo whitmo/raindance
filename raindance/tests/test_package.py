@@ -61,16 +61,16 @@ class TestPackageArchive(unittest.TestCase):
             assert outfile.text() == faux_txt
             assert outjson is marker
 
-    def test_save_arch_manifest(self):
+    def test_save_arch_manifest_called_once(self):
         pa = self.makeone()
         with patch(self.pam('http'),
                    spec=requests.Session) as http:
-            marker = http.get().json()
             faux_txt = http.get().text = '{}'
             verdir = self.outdir
             pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
 
-            (outfile, outjson) = pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
+            (outfile, outjson) = pa.save_arch_manifest('dummy', '123',
+                                                       verdir, 'BeOS')
             assert outfile.text() == faux_txt
             assert outjson == {}
 
@@ -85,7 +85,8 @@ class TestPackageArchive(unittest.TestCase):
             verdir = self.outdir
             http.get().ok = False
             with self.assertRaises(RuntimeError):
-                (outfile, outjson) = pa.save_arch_manifest('dummy', '123', verdir, 'BeOS')
+                (outfile, outjson) = pa.save_arch_manifest('dummy', '123',
+                                                           verdir, 'BeOS')
 
     def test_mirror_package_archive_no_software(self):
         with patch(self.pam('grab_manifest')):
