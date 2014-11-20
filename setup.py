@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 import os
 
-version = '0.3'
+version = '0.4'
 
 with open(os.path.abspath('./README.md')) as readme:
     long_description = readme.read()

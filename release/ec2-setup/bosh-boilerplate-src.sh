@@ -5,3 +5,4 @@ export BOSH_PASSWORD=admin
 export AWS_ACCESS_KEY_ID={{aaki}}
 export AWS_SECRET_ACCESS_KEY={{asak}}
 export TMPDIR=/var/vcap/data/tmp
+export PATH=$PATH:/home/ubuntu/.gem/ruby/1.9.1/bin
