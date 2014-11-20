@@ -4,7 +4,6 @@ from path import path
 from subparse import CLI
 import tempfile
 import logging
-import sys
 
 
 default_bucket = 'cf-packages'
@@ -69,17 +68,18 @@ def update_manifest(parser):
                         default=default_bucket)
 
 
+def parse_spec(spec):
+    if spec.find('/') == -1:
+        return (spec, None)
+    spec = soft, version = spec.split('/')
+    return spec
+
+
 @cli.command('raindance.package:mirror_pa')
 def mirror(parser):
     """
     Download a mirror of a section of package index
     """
-    def parse_spec(spec):
-        if spec.find('/') == -1:
-            return (spec, None)
-        spec = soft, version = spec.split('/')
-        return spec
-
     parser.add_argument('-a', '--arch', action='store',
                         help="architecture",
                         default='amd64')
@@ -95,6 +95,3 @@ def mirror(parser):
 
 
 main = cli.run
-
-if __name__ == "__main__":
-    sys.exit(main())

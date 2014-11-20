@@ -1,15 +1,18 @@
 ---
-- name: launch boshlite box
+- name: launch work box
   hosts: local
   gather_facts: false
+  vars_files:
+    - ./vars/run-vars.yml
   vars:
     keypair: juju
     instance_type: m3.xlarge
     security_group: cf-pipeline-boshlite
-    region: us-east-1
-    secdesc: For cf-juju package exports
+    region: us-west-2
+    ami: ami-eb2566db
+    secdesc: For cf-juju package migration
   tasks:
-  #@@ check and check again necessary due to bugs in ec2_group
+
   - name: check sec group
     local_action:
       module: ec2_group
@@ -38,15 +41,6 @@
           to_port: all
           cidr_ip: 10.0.0.0/0
 
-  - name: fetch ami
-    local_action:
-      module: script ami.sh
-      executable: /bin/bash
-    register: fetch_ami
-
-  - set_fact:
-      image: "{{fetch_ami.stdout | trim}}"
-
   - name: Create keypair
     local_action:
       module: ec2_key
@@ -62,10 +56,7 @@
       key_name: "boshlite-cf-export"
       group: "{{ security_group }}"
       instance_type: "{{ instance_type }}"
-      # "{{ image }}"
-      # ami-3a04df52
-      # ami-ee529e86
-      image: "{{ image }}"
+      image: "{{ami}}"
       wait: true
       state: present
       region: "{{ region }}"
@@ -89,5 +80,53 @@
       timeout: 960
       state: started
     with_items: ec2.instances
+    when: false
 
-- include: boshlite.yml
+- name: migrate
+  hosts: blbox
+  gather_facts: false
+  remote_user: ubuntu
+  vars_files:
+    - ./vars/run-vars.yml
+  vars:
+    workdir: /opt/packages
+  tasks:
+
+  - fail: msg="no aws access key -- {{aaki | len}}"
+    when: not aaki
+
+  - fail: msg="no aws secret key -- {{asak | len}}"
+    when: not asak
+
+  - name: Install the os deps
+    sudo: true
+    tags: repos
+    apt: pkg={{item}}
+         state=present
+         cache_valid_time="{{60*60*10}}"
+         update_cache=yes
+    with_items:
+      - python-virtualenv
+      - python-dev
+      - git
+
+  - name: install raindance
+    sudo: true
+    pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
+
+  - name: work dir
+    sudo: true
+    file: path={{workdir}} state=directory owner=ubuntu group=ubuntu
+
+  - name: boilerplate source
+    template: src=boilerplate.sh
+              dest=/home/ubuntu/.boilerplate-src.sh
+
+  - name: place boilerplate in bashrc
+    lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
+
+  - fail: msg='born to stop'
+
+  - name: shut down
+    sudo: true
+    command: poweroff
