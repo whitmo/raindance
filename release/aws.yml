@@ -4,10 +4,12 @@
   gather_facts: false
   vars:
     keypair: juju
-    instance_type: m3.xlarge
+    instance_type: m3.2xlarge
     security_group: cf-pipeline-boshlite
     region: us-east-1
     secdesc: For cf-juju package exports
+    image: ami-4cd75224
+    id_suffix: {{instance_id}}
   tasks:
   #@@ check and check again necessary due to bugs in ec2_group
   - name: check sec group
@@ -38,14 +40,14 @@
           to_port: all
           cidr_ip: 10.0.0.0/0
 
-  - name: fetch ami
-    local_action:
-      module: script ami.sh
-      executable: /bin/bash
-    register: fetch_ami
+  # - name: fetch ami
+  #   local_action:
+  #     module: script ami.sh
+  #     executable: /bin/bash
+  #   register: fetch_ami
 
-  - set_fact:
-      image: "{{fetch_ami.stdout | trim}}"
+  # - set_fact:
+  #     image: "{{fetch_ami.stdout | trim}}"
 
   - name: Create keypair
     local_action:
@@ -69,7 +71,7 @@
       wait: true
       state: present
       region: "{{ region }}"
-      id: "boshlite-cf-export--i"
+      id: "boshlite-cf-export-{{id_suffix}}"
       volumes:
         - device_name: /dev/sda1
           volume_size: 50
