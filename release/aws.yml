@@ -10,6 +10,8 @@
     secdesc: For cf-juju package exports
     image: ami-4cd75224
     id_suffix: {{instance_id}}
+  vars_files:
+    - /vars/run-vars.yml
   tasks:
   #@@ check and check again necessary due to bugs in ec2_group
   - name: check sec group
