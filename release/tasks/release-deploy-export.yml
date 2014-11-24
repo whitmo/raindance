@@ -132,7 +132,7 @@
 
 # hack around deploy issues
 - name: grab name of export
-  shell: ls -1 {{tmpdir}}/compiled_packages | tail -1
+  shell: ls -1 {{tmpdir}}/director/compiled_packages | tail -1
   register: cpcname
 
 - set_fact:

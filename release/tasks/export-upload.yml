@@ -48,7 +48,7 @@
   pip: name='git+https://github.com/whitmo/raindance.git#egg=raindance' virtualenv={{workdir}}
 
 - name: grab name of bungled export
-  shell: ls -1 {{tmpdir}}/compiled_packages | tail -1
+  shell: ls -1 {{tmpdir}}/director/compiled_packages | tail -1
   register: cpcname
 
 - set_fact:
@@ -78,7 +78,7 @@
 
 - name: place file
   sudo: true
-  command: cp {{tmpdir}}/compiled_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
+  command: cp {{tmpdir}}/director/compiled_packages/{{cpc_tgz}} {{workdir}}/packages.tar.gz creates={{workdir}}/packages.tar.gz
 
 - name: fix ownership
   sudo: true
