@@ -9,9 +9,8 @@
     region: us-east-1
     secdesc: For cf-juju package exports
     image: ami-4cd75224
-    id_suffix: {{instance_id}}
   vars_files:
-    - /vars/run-vars.yml
+    - ./vars/run-vars.yml
   tasks:
   #@@ check and check again necessary due to bugs in ec2_group
   - name: check sec group
@@ -58,7 +57,7 @@
       region: "{{ region }}"
       key_material: "{{ item }}"
       state: present
-    with_file: "~/.juju/ssh/juju_id_rsa.pub"
+    with_file: "/home/ubuntu/.juju/ssh/juju_id_rsa.pub"
 
   - name: Launch boshlite instance
     local_action:
@@ -73,7 +72,7 @@
       wait: true
       state: present
       region: "{{ region }}"
-      id: "boshlite-cf-export-{{id_suffix}}"
+      id: "boshlite-cf-export-{{instance_id}}"
       volumes:
         - device_name: /dev/sda1
           volume_size: 50

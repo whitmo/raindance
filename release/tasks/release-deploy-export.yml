@@ -39,9 +39,9 @@
 - name: install bosh cli
   gem: name=bosh_cli state=latest
 
-# - name: bosh config
-#   sudo: true
-#   file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
+- name: bosh config
+  sudo: true
+  file: path=/home/ubuntu/.bosh_config owner=ubuntu group=ubuntu
 
 - name: target bosh locally
   shell: "{{bp}} bosh target localhost
@@ -76,7 +76,7 @@
   file: path=/var/vcap/data/tmp owner=ubuntu group=ubuntu
 
 - name: upload release to bosh
-  shell: "{{bp}} TMPDIR=/var/vcap/data/tmp bosh upload release releases/cf-{{rel}}.yml
+  shell: "{{bp}} TMPDIR={{tmpdir}} bosh upload release releases/cf-{{rel}}.yml
          chdir=/opt/cf-release
          executable=/bin/bash"
   when: do_upload_release | bool
@@ -125,14 +125,14 @@
   register: deploy_result
 
 - name: run export
-  shell: "{{bp}} bosh export compiled_packages cf/{{rel}} bosh-warden-boshlite-ubuntu-trusty-go_agent/3 {{workdir}}
+  shell: "{{bp}} bosh export compiled_packages cf/{{rel}} {{stemcell_name}} {{workdir}}
          executable=/bin/bash"
   async: 600
   poll: 50
 
 # hack around deploy issues
 - name: grab name of export
-  shell: ls -1 /tmp/compiled_packages | tail -1
+  shell: ls -1 {{tmpdir}}/compiled_packages | tail -1
   register: cpcname
 
 - set_fact:
