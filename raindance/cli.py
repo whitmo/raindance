@@ -75,6 +75,15 @@ def parse_spec(spec):
     return spec
 
 
+@cli.command('raindance.pipeline:pack_jobs')
+def pack_jobs(parser):
+    parser.add_argument('--release',
+                        help="string designator for release",
+                        type=str,
+                        default='vX.x')
+    parser.add_argument('outfile', help="output file", type=path)
+
+
 @cli.command('raindance.package:mirror_pa')
 def mirror(parser):
     """
