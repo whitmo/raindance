@@ -1,11 +1,12 @@
 from . import util
 from .package import PackageArchive
+from path import path
 import boto
 import json
 import logging
 import requests
 import tarfile
-
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +103,28 @@ class PrepExport(object):
             else:
                 yield (package, (False, False))
 
-    def create_jobs_tgz(self):
-        jobssrc = self.release.jobs
-        with util.pushd(jobssrc), tarfile.open(self.jobsfile, 'w:gz') as tgz:
-            tgz.add('.')
-        return self.jobsfile
+    @staticmethod
+    def create_jobs_tgz(jobssrc, release, target):
+        tmpdir = path(tempfile.mkdtemp(prefix='jobs-%s' % release))
+        with tarfile.open(target, 'w:gz') as tgz:
+            with tmpdir:
+                for fd in jobssrc.listdir():
+                    if fd.islink():
+                        fd = fd.readlinkabs()
+                    path(fd).copytree(tmpdir / fd.basename())
+                tgz.add('.')
+        return target
+
+    @classmethod
+    def pack_jobs(cls, ctx, pargs):
+        release = ctx['release']
+        assert release.exists()
+
+        jobfile = cls.create_jobs_tgz(release.jobs,
+                                      pargs.release,
+                                      pargs.outfile)
+        print(jobfile.abspath())
+        return 0
 
     verify_file = staticmethod(PackageArchive.verify_file)
 
@@ -143,7 +161,10 @@ class PrepExport(object):
 
         jobdata = [(job, job.packages) for job in self.release.joblist]
 
-        jobsfile = self.create_jobs_tgz()
+        jobsfile = self.create_jobs_tgz(self.release.jobs,
+                                        self.release,
+                                        self.jobsfile)
+
         jobs_sha1 = jobsfile.read_hexhash('sha1')
 
         pkglist = list(self.verified_pkg_list())
@@ -180,3 +201,4 @@ class PrepExport(object):
 
 
 prep_export = PrepExport.command
+pack_jobs = PrepExport.pack_jobs
