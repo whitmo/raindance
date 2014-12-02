@@ -4,11 +4,16 @@
   gather_facts: false
   vars:
     keypair: juju
-    instance_type: m3.2xlarge
+    #instance_type: m3.2xlarge
+    instance_type: c3.2xlarge
     security_group: cf-pipeline-boshlite
     region: us-east-1
     secdesc: For cf-juju package exports
-    image: ami-4cd75224
+    # dmitry approved ami
+    # image: ami-4cd75224
+    # pre populated
+    image: ami-6e1b8206
+    spot_price: 0.125
   vars_files:
     - ./vars/run-vars.yml
   tasks:
@@ -41,15 +46,6 @@
           to_port: all
           cidr_ip: 10.0.0.0/0
 
-  # - name: fetch ami
-  #   local_action:
-  #     module: script ami.sh
-  #     executable: /bin/bash
-  #   register: fetch_ami
-
-  # - set_fact:
-  #     image: "{{fetch_ami.stdout | trim}}"
-
   - name: Create keypair
     local_action:
       module: ec2_key
@@ -68,6 +64,7 @@
       # "{{ image }}"
       # ami-3a04df52
       # ami-ee529e86
+      spot_price: "{{spot_price}}"
       image: "{{ image }}"
       wait: true
       state: present
