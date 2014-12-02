@@ -194,7 +194,7 @@ class PrepExport(object):
         pe = cls(pargs.exported_packages, pargs.outdir, release)
 
         assert not pe.outdir.exists(), "%s exists. Please move "\
-          "or change directory for output"
+          "or change directory for output" % pe.outdir
 
         pe.do_prep()
         return 0
