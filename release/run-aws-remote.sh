@@ -17,7 +17,7 @@ asak: ${AWS_SECRET_KEY}
 instance_id: ${2}
 EOF
 
-CMD="ansible-playbook --private-key=/home/ubuntu/.juju/ssh/juju_id_rsa -vv -i ./inventory.ini  ./aws.yml"
+CMD="ansible-playbook --private-key=/home/ubuntu/.juju/ssh/juju_id_rsa -v -i ./inventory.ini  ./aws.yml"
 
 echo $CMD
 $CMD

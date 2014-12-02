@@ -162,7 +162,7 @@ class PrepExport(object):
         jobdata = [(job, job.packages) for job in self.release.joblist]
 
         jobsfile = self.create_jobs_tgz(self.release.jobs,
-                                        self.release,
+                                        self.release_number,
                                         self.jobsfile)
 
         jobs_sha1 = jobsfile.read_hexhash('sha1')
