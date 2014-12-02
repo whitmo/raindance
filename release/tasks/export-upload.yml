@@ -113,7 +113,7 @@
   command: "rm -rf {{workdir}}/out
             removes={{workdir}}/out/packages"
 
-- fail: msg='born to stop'
+#- fail: msg='born to stop'
 
 - name: shut down
   sudo: true
