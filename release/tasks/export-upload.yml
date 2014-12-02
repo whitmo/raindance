@@ -55,9 +55,6 @@
     pkg_exists: "{{pkgtgz.state == 'file'}}"
     cpc_tgz: "{{cpcname.stdout}}"
 
-- set_fact:
-    cpc_tgz_exists: "{{ cpc_tgz | bool }}"
-
 - name: boilerplate source
   template: src=ec2-setup/bosh-boilerplate-src.sh
             dest=/home/ubuntu/.boilerplate-src.sh
@@ -66,7 +63,7 @@
   lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
 
 - include: release-deploy-export.yml
-  when: not cpc_tgz_exists | bool
+  when: not pkg_exists
 
 - name: delete downloaded export tgz
   shell: rm /opt/packages/cf-{{rel}}*.tgz
