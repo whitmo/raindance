@@ -87,6 +87,10 @@
 - name: unpack compiled packages
   shell: tar -C {{workdir}}/packages -xzf {{workdir}}/packages.tar.gz
 
+- name: remove outdir
+  sudo: true
+  file: path="{{workdir}}/out" state=absent
+
 - name: reprocess export
   shell: "{{bp}} rd -p /opt/cf-release prep-export
           --outdir={{workdir}}/out {{workdir}}/packages
