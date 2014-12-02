@@ -104,8 +104,8 @@ class PrepExport(object):
                 yield (package, (False, False))
 
     @staticmethod
-    def create_jobs_tgz(jobssrc, release, target):
-        tmpdir = path(tempfile.mkdtemp(prefix='jobs-%s' % release))
+    def create_jobs_tgz(jobssrc, release_number, target):
+        tmpdir = path(tempfile.mkdtemp(prefix='jobs-%s' % release_number))
         with tarfile.open(target, 'w:gz') as tgz:
             with tmpdir:
                 for fd in jobssrc.listdir():
@@ -121,7 +121,7 @@ class PrepExport(object):
         assert release.exists()
 
         jobfile = cls.create_jobs_tgz(release.jobs,
-                                      pargs.release,
+                                      pargs.release_number,
                                       pargs.outfile)
         print(jobfile.abspath())
         return 0
