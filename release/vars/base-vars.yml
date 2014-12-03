@@ -1,6 +1,7 @@
 ---
+spiff_url: "https://github.com/cloudfoundry-incubator/spiff/releases/download/v1.0.3/spiff_linux_amd64.zip"
 tmpdir: /var/vcap/data/tmp
-stemcell_uri: https://s3.amazonaws.com/bosh-jenkins-artifacts/bosh-stemcell/warden/bosh-stemcell-27-warden-boshlite-ubuntu-trusty-go_agent.tgz
+stemcell_uri: "https://s3.amazonaws.com/bosh-jenkins-artifacts/bosh-stemcell/warden/bosh-stemcell-27-warden-boshlite-ubuntu-trusty-go_agent.tgz"
 stemcell_name: bosh-warden-boshlite-ubuntu-trusty-go_agent/27
 bp: source /home/ubuntu/.boilerplate-src.sh &&
 workdir: /opt/packages
