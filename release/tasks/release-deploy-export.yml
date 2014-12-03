@@ -96,11 +96,6 @@
          chdir=/opt/boshlite
          executable=/bin/bash"
 
-- name: edit manifest
-  replace: dest=/opt/boshlite/manifests/cf-manifest.yml
-           regexp=lucid
-           replace=trusty
-
 - name: upload manifest
   shell: "{{bp}} bosh deployment /opt/boshlite/manifests/cf-manifest.yml
           executable=/bin/bash"
