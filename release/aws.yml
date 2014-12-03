@@ -13,7 +13,6 @@
     # image: ami-4cd75224
     # pre populated
     image: ami-6e1b8206
-    spot_price: 0.125
   vars_files:
     - ./vars/run-vars.yml
   tasks:
