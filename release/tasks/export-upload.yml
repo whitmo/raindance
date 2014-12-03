@@ -63,7 +63,7 @@
   lineinfile: dest=/home/ubuntu/.bashrc line=". ~/.boilerplate-src.sh"
 
 - include: release-deploy-export.yml
-  when: not pkg_exists == "False"
+  when: pkg_exists == "False"
 
 - name: delete downloaded export tgz
   shell: rm /opt/packages/cf-{{rel}}*.tgz
