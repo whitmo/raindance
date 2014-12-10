@@ -89,7 +89,6 @@ update_release_manifest = S3RepoMaintenance.update_release_manifest_command
 upload_util = S3RepoMaintenance.upload_util
 
 
-
 class PrepExport(object):
     manifest = 'compiled_packages.MF'
 

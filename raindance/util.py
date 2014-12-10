@@ -37,7 +37,8 @@ def load_yaml(path_):
 
 class reify(object):
     """
-    from pyramid, licensing applies: https://github.com/Pylons/pyramid/blob/master/LICENSE.txt
+    from pyramid, licensing applies:
+    https://github.com/Pylons/pyramid/blob/master/LICENSE.txt
 
     Use as a class method decorator.  It operates almost exactly like the
     Python ``@property`` decorator, but it puts the result of the method it
