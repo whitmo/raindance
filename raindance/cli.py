@@ -68,6 +68,21 @@ def update_manifest(parser):
                         default=default_bucket)
 
 
+@cli.command('raindance.pipeline:upload_util')
+def upload_util(parser):
+    """Upload a binary utility to the package repo"""
+    parser.add_argument('-b', '--bucket', action='store',
+                        help="bucket for index",
+                        default=default_bucket)
+
+    parser.add_argument('version', action='store',
+                        help="Version of utility")
+
+    parser.add_argument('path', action='store',
+                        help="path to binary",
+                        type=path)
+
+
 def parse_spec(spec):
     if spec.find('/') == -1:
         return (spec, None)
