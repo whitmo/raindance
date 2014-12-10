@@ -11,9 +11,10 @@ import tempfile
 logger = logging.getLogger(__name__)
 
 
-class UpdateReleaseManifest(object):
+class S3RepoMaintenance(object):
 
-    def gen_rel_data(self, bucket):
+    @staticmethod
+    def gen_rel_data(bucket):
         """
         abuses convention of arch manifests
         """
@@ -24,21 +25,42 @@ class UpdateReleaseManifest(object):
             yield soft, [version, archfile.replace('.json', '')]
 
     @classmethod
-    def command(cls, ctx, pargs):
-        urm = cls()
-        bucket = urm.s3.get_bucket(pargs.bucket)
+    def upload_util(cls, ctx, pargs):
+        srm = cls()
+        bucket = srm.s3.get_bucket(pargs.bucket)
+        fp = pargs.path
+        if fp.startswith("~"):
+            fp.exanduser()
+        fp = fp.abspath()
 
+        newkey = "%s-v%s-%s" % (fp.basename(), pargs.version, fp.read_hexhash('sha1'))
+        idxk = bucket.new_key('utilities/%s' % newkey)
+        idxk.set_contents_from_filename(fp)
+        idxk.set_canned_acl('public-read')
+        srm.update_release_manifest(bucket)
+
+    def update_release_manifest(srm, bucket):
         releases = dict()
 
-        for soft, rel in urm.gen_rel_data(bucket):
+        for soft, rel in srm.gen_rel_data(bucket):
             rels = releases.setdefault(soft, [])
             rels.append(rel)
 
-        outstring = json.dumps(dict(releases=releases), indent=2)
+        utkeys = [x.name.split('/')[1] for x in bucket.list(prefix="utilities/")]
+        outstring = json.dumps(dict(releases=releases,
+                                    utilities=utkeys),
+                               indent=2)
+
         idxk = bucket.new_key('index.json')
         idxk.content_type = 'application/json'
         idxk.set_contents_from_string(outstring)
         idxk.set_canned_acl('public-read')
+
+    @classmethod
+    def update_release_manifest_command(cls, ctx, pargs):
+        srm = cls()
+        bucket = srm.s3.get_bucket(pargs.bucket)
+        srm.update_release_manifest(bucket)
         return 0
 
     @util.reify
@@ -50,7 +72,9 @@ class UpdateReleaseManifest(object):
         return boto.connect_s3()
 
 
-update_release_manifest = UpdateReleaseManifest.command
+update_release_manifest = S3RepoMaintenance.update_release_manifest_command
+upload_util = S3RepoMaintenance.upload_util
+
 
 
 class PrepExport(object):
