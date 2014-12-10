@@ -24,17 +24,30 @@ class S3RepoMaintenance(object):
         for soft, version, archfile in archkeys:
             yield soft, [version, archfile.replace('.json', '')]
 
+    @staticmethod
+    def utkeys(bucket):
+        split_keys = (x.name.split('/') for x in bucket.list())
+        splits = ((x[0], x[2]) for x in split_keys \
+                  if len(x) == 3 and x[1] == 'utilities')
+        out = dict()
+        [out.setdefault(soft, []).append(util) for soft, util in splits]
+        return out
+
     @classmethod
     def upload_util(cls, ctx, pargs):
         srm = cls()
         bucket = srm.s3.get_bucket(pargs.bucket)
+
         fp = pargs.path
         if fp.startswith("~"):
             fp.exanduser()
         fp = fp.abspath()
 
-        newkey = "%s-v%s-%s" % (fp.basename(), pargs.version, fp.read_hexhash('sha1'))
-        idxk = bucket.new_key('utilities/%s' % newkey)
+        newkey = "%s-v%s-%s" % (fp.basename(),
+                                pargs.version,
+                                fp.read_hexhash('sha1'))
+
+        idxk = bucket.new_key('%s/utilities/%s' % (pargs.project, newkey))
         idxk.set_contents_from_filename(fp)
         idxk.set_canned_acl('public-read')
         srm.update_release_manifest(bucket)
@@ -46,7 +59,7 @@ class S3RepoMaintenance(object):
             rels = releases.setdefault(soft, [])
             rels.append(rel)
 
-        utkeys = [x.name.split('/')[1] for x in bucket.list(prefix="utilities/")]
+        utkeys = srm.utkeys(bucket)
         outstring = json.dumps(dict(releases=releases,
                                     utilities=utkeys),
                                indent=2)

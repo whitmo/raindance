@@ -75,6 +75,10 @@ def upload_util(parser):
                         help="bucket for index",
                         default=default_bucket)
 
+    parser.add_argument('-p', '--project', action='store',
+                        help="bucket for index",
+                        default="cf")
+
     parser.add_argument('version', action='store',
                         help="Version of utility")
 
