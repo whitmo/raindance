@@ -9,6 +9,7 @@ def test_cli():
     cli.update_manifest(Mock())
     cli.mirror(Mock())
     cli.pack_jobs(Mock())
+    cli.upload_util(Mock())
 
 
 def test_parse_spec():

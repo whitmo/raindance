@@ -30,20 +30,9 @@ class submap_value(object):
         return mapping[self.key]
 
 
-def load_yaml(path):
-    with open(path) as stream:
+def load_yaml(path_):
+    with open(path_) as stream:
         return yaml.load(stream, yaml.SafeLoader)
-
-
-@contextmanager
-def pushd(newdir):
-    newdir = path(newdir)
-    curdir = path('.').abspath()
-    try:
-        newdir.chdir()
-        yield newdir
-    finally:
-        curdir.chdir()
 
 
 class reify(object):
